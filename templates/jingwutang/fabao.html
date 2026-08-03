@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('fabao') }} - {{ t('jingwutang') }}{% endblock %}
+{% block page_title %}{{ t('fabao') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/jingwutang">{{ t('battle') }}</a>|
+    <a href="/jingwutang/attributes">{{ t('attribute') }}</a>|
+    <a href="/jingwutang/inventory">{{ t('inventory') }}</a>|
+    <a href="/jingwutang/fabao" class="active">{{ t('fabao') }}</a>|
+    <a href="/jingwutang/wuhun">{{ t('wuhun') }}</a>|
+    <a href="/">{{ t('home') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section" style="text-align: center;">
+    <div style="font-size: 64px; margin-bottom: 10px;">☯️</div>
+</div>
+
+<div class="section">
+    <div class="stat-line">{{ t('fabao_lock') }}{{ t('fabao_status') }}:{{ t('fabao_closed') }}</div>
+    <div class="stat-line">{{ t('fabao_lock') }}更改状态:<a href="#">{{ t('fabao_open') }}</a></div>
+</div>
+
+<div class="section">
+    <div class="section-title">【九宫{{ t('fabao') }}】 <a href="#">{{ t('rules') }}</a></div>
+    <div class="stat-line">{{ t('proficiency') }}:{{ role.combat_power * 10000000 }}/0</div>
+    <div class="stat-line">{{ t('fabao_essence') }}:27919</div>
+    <div class="stat-line">{{ t('exp_pool') }}:1860988600</div>
+    <div class="stat-line">战斗值:{{ role.combat_power * 1000000 }}</div>
+    
+    <div style="margin: 15px 0;">
+        <a href="#">{{ t('fabao_fast_smelt') }}</a>
+        <a href="#">{{ t('fabao_smelt') }}</a>
+        <a href="#">{{ t('fabao_exchange') }}</a>
+    </div>
+</div>
+
+<div class="section">
+    <div style="margin-bottom: 10px;">
+        {{ t('fabao_equipped') }}|<a href="#">{{ t('fabao_box') }}(3)</a>
+    </div>
+    <div style="margin-bottom: 10px;">
+        <a href="#">我</a>|<a href="#">龙</a>
+    </div>
+    <div style="margin-bottom: 15px;">
+        <a href="#">{{ t('attribute') }}</a>|<a href="#">{{ t('level') }}</a>
+    </div>
+    
+    <div class="fabao-grid">
+        {% for fb in fabaos %}
+        <div class="fabao-item">
+            <div class="fabao-name quality-legendary">{{ fb.name }}</div>
+            <div class="fabao-level">({{ fb.level or 80 }}{{ t('level') }})</div>
+            <div style="margin-top: 5px;">
+                <a href="#">{{ t('absorb') }}</a>.<a href="#">{{ t('remove') }}</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title">【{{ t('fabao') }}动态】</div>
+    <div class="trends-list">
+        <div class="trend-item">(09:42){{ t('congrats') }} 玩家 {{ t('got') }}传说属性</div>
+        <div class="trend-item">(09:13){{ t('congrats') }} 玩家 {{ t('got') }}传说属性</div>
+    </div>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="/jingwutang">{{ t('back') }}</a>
+</div>
+{% endblock %}

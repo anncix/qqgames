@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('wuhun') }} - {{ t('jingwutang') }}{% endblock %}
+{% block page_title %}{{ t('wuhun') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/jingwutang">{{ t('battle') }}</a>|
+    <a href="/jingwutang/attributes">{{ t('attribute') }}</a>|
+    <a href="/jingwutang/inventory">{{ t('inventory') }}</a>|
+    <a href="/jingwutang/fabao">{{ t('fabao') }}</a>|
+    <a href="/jingwutang/wuhun" class="active">{{ t('wuhun') }}</a>|
+    <a href="/">{{ t('home') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div class="stat-line">
+        <a href="#">{{ '熟练等级' if lang == 'zh' else 'Mastery Lv' }}</a>:0{{ t('level') }}
+    </div>
+    <div style="margin: 10px 0;">
+        <a href="#">{{ t('wuhun') }}</a>|<a href="#">魂器(0)</a>
+    </div>
+    <div style="margin-bottom: 15px;">
+        <a href="#">我</a>|<a href="#">龙</a>
+    </div>
+</div>
+
+{% for wd in wuhun_data %}
+<div class="wuhun-slot">
+    <div class="wuhun-name">
+        【{{ wd.wuhun.name }}】
+        <a href="#">{{ t('wuhun_train') }}</a>.<a href="#">{{ t('wuhun_unequip') }}</a>
+    </div>
+    {% for stat in wd.stats %}
+    <div class="wuhun-stat quality-{{ stat.quality }}">
+        [{{ t(stat.quality, lang) }}{% if stat.stars %}★{{ '★' * (stat.stars - 1) }}{% elif stat.quality == 'common' %}☆{% endif %}]
+        {{ stat.name_zh if lang == 'zh' else stat.name_en }}+{{ stat.value }}
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+<div class="wuhun-slot" style="opacity: 0.5;">
+    <div class="wuhun-name">【火魂】 40{{ t('activate_at') }}</div>
+</div>
+<div class="wuhun-slot" style="opacity: 0.5;">
+    <div class="wuhun-name">【金魂】 50{{ t('activate_at') }}</div>
+</div>
+<div class="wuhun-slot" style="opacity: 0.5;">
+    <div class="wuhun-name">【木魂】 60{{ t('activate_at') }}</div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+    <div class="section-title">【{{ t('wuhun_trends') }}】</div>
+    <div class="trends-list">
+        <div class="trend-item">(09:42){{ t('congrats') }} <a href="#">沫沫</a> {{ t('got') }}{{ t('legendary') }}单属性:(伤害2000满)!</div>
+        <div class="trend-item">(09:13){{ t('congrats') }} <a href="#">沫沫</a> {{ t('got') }}{{ t('legendary') }}单属性:(闪避1400满)!</div>
+    </div>
+</div>
+
+<div style="margin-top: 20px;">
+    <a href="/jingwutang">{{ t('back') }}</a>
+</div>
+{% endblock %}

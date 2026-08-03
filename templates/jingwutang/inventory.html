@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('inventory') }} - {{ t('jingwutang') }}{% endblock %}
+{% block page_title %}{{ t('inventory') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/jingwutang">{{ t('battle') }}</a>|
+    <a href="/jingwutang/attributes">{{ t('attribute') }}</a>|
+    <a href="/jingwutang/inventory" class="active">{{ t('inventory') }}</a>|
+    <a href="/jingwutang/fabao">{{ t('fabao') }}</a>|
+    <a href="/jingwutang/wuhun">{{ t('wuhun') }}</a>|
+    <a href="/">{{ t('home') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section" style="text-align: center;">
+    <div style="font-size: 48px; margin-bottom: 10px;">🎒</div>
+    <div style="font-size: 16px;">
+        {{ t('inventory') }}:{{ total_items }}/{{ max_items }}
+        (<a href="#">使用布袋</a>最多加至480格)
+    </div>
+</div>
+
+<div class="section">
+    <div class="tab-nav">
+        {% for cat in categories %}
+        <a href="/jingwutang/inventory?category={{ cat }}" class="{{ 'active' if current_category == cat else '' }}">
+            {{ category_names[cat] }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="section">
+    {% if items %}
+    {% for item in items %}
+    <div class="list-item">
+        <div>
+            <span class="item-name quality-{{ item.quality }}">{{ item.name }}</span>
+            <span class="item-qty"> ×{{ item.quantity }}</span>
+            {% if item.item_type == 'prop' %}
+            .<a href="#">{{ t('use') }}</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="text-align: center; padding: 30px; color: var(--silver-color);">
+        暂无物品
+    </div>
+    {% endif %}
+    
+    <div style="margin-top: 15px;">
+        <a href="#">{{ t('next_page') }}</a>.<a href="#">{{ t('last_page') }}</a>
+    </div>
+    <div style="margin-top: 10px;">
+        {{ t('page') }}1/2
+        <input type="text" style="width: 60px; padding: 4px; display: inline-block;">
+        <button class="btn" style="padding: 4px 10px;">{{ t('jump_to') }}</button>
+    </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+    <a href="#">{{ t('recycle_bin') }}</a><br>
+    <a href="/jingwutang">{{ t('back') }}</a>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('create_character') }} - {{ t('jingwutang') }}{% endblock %}
+{% block page_title %}{{ t('jingwutang') }} - {{ t('create_character') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/">{{ t('home') }}</a>|
+    <a href="/jingwutang">{{ t('jingwutang') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-title">⚔️ {{ t('create_character') }}</div>
+    <form method="post" action="/jingwutang/create">
+        <div class="form-group">
+            <label>{{ t('character_name') }}</label>
+            <input type="text" name="name" required placeholder="{{ t('character_name') }}" maxlength="20">
+        </div>
+        <div class="form-group">
+            <label>{{ t('gender') }}</label>
+            <select name="gender">
+                <option value="male">{{ t('male') }}</option>
+                <option value="female">{{ t('female') }}</option>
+            </select>
+        </div>
+        <button type="submit" class="btn" style="width: 100%;">{{ t('submit') }}</button>
+    </form>
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="/">{{ t('back') }}</a>
+    </div>
+</div>
+{% endblock %}
