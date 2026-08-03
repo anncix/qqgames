@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, Table, SmallInteger, Numeric
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, Table, SmallInteger, Numeric, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -469,36 +469,57 @@ class RankSnapshot(Base):
 # ==================== 十、精武堂模块 ====================
 
 class JingwuRole(Base):
+    """精武堂角色 - 潜能点/体力/修炼/头衔/货币/法宝武魂宠物关联"""
     __tablename__ = "jingwu_roles"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True, nullable=False)
     user = relationship("User", back_populates="jw_role")
 
+    # ---- 基础信息 ----
     name = Column(String(50), nullable=False)
+    gender = Column(SmallInteger, default=1)  # 1男 2女
     level = Column(Integer, default=1)
     exp = Column(Integer, default=0)
-    gender = Column(String(10), default="male")
+    title_id = Column(Integer, ForeignKey("jingwu_titles.id"), nullable=True)  # 头衔
     profession = Column(String(20), default="common")
-
     transferred = Column(Boolean, default=False)
     transfer_path = Column(String(20))
     transfer_name = Column(String(20))
 
-    potential = Column(Integer, default=3)
-    str_point = Column(Integer, default=0)
-    con_point = Column(Integer, default=0)
-    agi_point = Column(Integer, default=0)
-    def_point = Column(Integer, default=0)
+    # ---- 潜能点系统（每级3点，5项加点）----
+    # 体质→气血、智力→精气、力量→伤害、耐力→防御、敏捷→速度
+    potential = Column(Integer, default=3)       # 可用潜能点（每级+3）
+    con_point = Column(Integer, default=0)       # 体质点（影响气血）
+    int_point = Column(Integer, default=0)       # 智力点（影响精气/MP）
+    str_point = Column(Integer, default=0)       # 力量点（影响伤害）
+    end_point = Column(Integer, default=0)       # 耐力点（影响防御）
+    agi_point = Column(Integer, default=0)       # 敏捷点（影响速度）
+    # 兼容旧字段
     mag_point = Column(Integer, default=0)
+    def_point = Column(Integer, default=0)
 
+    # ---- 气血/精气/体力 ----
     hp = Column(Integer, default=100)
-    max_hp = Column(Integer, default=100)
+    max_hp = Column(Integer, default=100)        # 基础气血 = 等级*20 + 体质*10
     mp = Column(Integer, default=50)
-    max_mp = Column(Integer, default=50)
+    max_mp = Column(Integer, default=50)         # 基础精气 = 等级*10 + 智力*5
+    sp = Column(Integer, default=100)            # 体力（比武耗10，修炼耗20，上限100）
+    max_sp = Column(Integer, default=100)        # 体力上限100
+    last_sp_recover = Column(DateTime)           # 上次体力恢复时间
+    # 兼容旧字段
     stamina = Column(Integer, default=100)
     max_stamina = Column(Integer, default=100)
 
+    # ---- 战斗属性（由属性点+装备+帮派心法等综合计算）----
+    damage = Column(Integer, default=10)         # 伤害（力量*2 + 装备）
+    defense = Column(Integer, default=5)         # 防御（耐力*2 + 装备）
+    speed = Column(Integer, default=10)          # 速度（敏捷*2 + 装备）
+    accuracy = Column(Integer, default=100)      # 命中
+    dodge = Column(Integer, default=0)           # 闪避%
+    crit = Column(Integer, default=5)            # 暴击%
+    crit_damage = Column(Integer, default=150)   # 暴击伤害%
+    # 兼容旧字段
     base_damage = Column(Integer, default=10)
     base_defense = Column(Integer, default=5)
     base_speed = Column(Integer, default=10)
@@ -507,22 +528,73 @@ class JingwuRole(Base):
     base_crit = Column(Integer, default=5)
     base_crit_damage = Column(Integer, default=150)
 
-    combat_power = Column(Integer, default=0)
+    # ---- 战斗统计 ----
+    combat_power = Column(Integer, default=0)    # 战斗力
+    wins_total = Column(Integer, default=0)
+    losses_total = Column(Integer, default=0)
     wins_today = Column(Integer, default=0)
     losses_today = Column(Integer, default=0)
     wins_week = Column(Integer, default=0)
+    losses_week = Column(Integer, default=0)
 
-    polaris_level = Column(Integer, default=0)
-    polaris_exp = Column(Integer, default=0)
-
+    # ---- 修炼状态：0空闲 1修炼中 2气血不顺 3走火入魔 ----
+    train_status = Column(SmallInteger, default=0)
+    train_type = Column(String(20))              # 普通修炼/修真(80+)/战神宫
+    train_start = Column(DateTime)
+    train_end = Column(DateTime)
+    train_exp_bonus = Column(Float, default=1.0) # 修炼经验倍率
+    xiuzhen_unlocked = Column(Boolean, default=False)  # 80级开启修真
+    # 兼容旧字段
     is_training = Column(Boolean, default=False)
     training_type = Column(String(20))
     training_start = Column(DateTime)
     training_end = Column(DateTime)
 
+    # ---- 货币系统 ----
+    gcoin = Column(Integer, default=1000)        # G币
+    yuanbao = Column(Integer, default=0)         # 元宝
+    silver = Column(Integer, default=0)          # 银币（兼容）
+    bind_yuanbao = Column(Integer, default=0)    # 绑定元宝
+
+    # ---- 北极星/战神宫等扩展 ----
+    polaris_level = Column(Integer, default=0)
+    polaris_exp = Column(Integer, default=0)
+    war_god_floor = Column(Integer, default=0)   # 战神宫层数
+    gang_contribution = Column(Integer, default=0)
+
+    # ---- 技能系统 ----
+    skill_points = Column(Integer, default=0)     # 技能点（修炼获得，用于学技能）
+    skill_pool = Column(JSON, default=list)       # 已装配技能ID列表（技能池，建议9-10个）
+    skills_learned = Column(JSON, default=list)   # 已学技能ID列表
+
+    # ---- 装备/法宝/武魂/宠物/帮派关联（use_alter解决循环外键排序问题）----
+    talisman_id = Column(Integer, ForeignKey("jingwu_talismans.id", use_alter=True), nullable=True)  # 当前佩戴法宝
+    wuhun_id = Column(Integer, ForeignKey("jingwu_wuhun.id", use_alter=True), nullable=True)         # 当前武魂
+    active_pet_id = Column(Integer, ForeignKey("jingwu_pets.id", use_alter=True), nullable=True)     # 出战宠物
+    gang_id = Column(Integer, ForeignKey("jingwu_gangs.id", use_alter=True), nullable=True)          # 所属帮派
+
+    # ---- 闻香炉 & 异常状态 ----
+    xianglu_level = Column(Integer, default=0)           # 闻香炉等级（恢复体力）
+    xianglu_last_use = Column(DateTime)                  # 上次使用闻香炉时间
+    possess_end_time = Column(DateTime)                  # 走火入魔结束时间
+
+    # ---- 时间戳 ----
+    last_battle_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # ---- 关系 ----
+    title = relationship("JingwuTitle")
     items = relationship("JingwuItem", back_populates="owner", cascade="all, delete-orphan")
     equipments = relationship("JingwuEquipment", back_populates="owner", cascade="all, delete-orphan")
     dungeon = relationship("JingwuDungeon", back_populates="role", uselist=False, cascade="all, delete-orphan")
+    pets = relationship("JingwuPet", back_populates="owner", foreign_keys="JingwuPet.owner_id", cascade="all, delete-orphan")
+    user_skills = relationship("JingwuUserSkill", back_populates="owner", cascade="all, delete-orphan")
+    talismans = relationship("JingwuTalisman", back_populates="owner", foreign_keys="JingwuTalisman.owner_id", cascade="all, delete-orphan")
+    talisman = relationship("JingwuTalisman", foreign_keys=[talisman_id])
+    wuhun = relationship("JingwuWuhun", foreign_keys=[wuhun_id])
+    active_pet = relationship("JingwuPet", foreign_keys=[active_pet_id])
+    gang = relationship("JingwuGang", foreign_keys=[gang_id])
 
 
 class JingwuItem(Base):
@@ -544,15 +616,40 @@ class JingwuItem(Base):
 
 
 class JingwuEquipment(Base):
+    """精武堂装备实例表 - 5部位/强化/精炼/孔数/宝石镶嵌"""
     __tablename__ = "jingwu_equipments"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     owner_id = Column(Integer, ForeignKey("jingwu_roles.id"), nullable=False)
     owner = relationship("JingwuRole", back_populates="equipments")
 
-    slot = Column(String(20), nullable=False)
+    # ---- 基础信息 ----
     name = Column(String(100), nullable=False)
+    # 5部位：1手持(主伤害) 2身穿(主防御) 3头戴(主防御) 4脚穿(主速度) 5佩戴(主气血)
+    slot = Column(SmallInteger, nullable=False)    # 1-5
+    slot_name = Column(String(20))                 # weapon/armor/helmet/boots/accessory
     level_required = Column(Integer, default=1)
+    template_id = Column(Integer, ForeignKey("jingwu_equip_templates.id"), nullable=True)  # 来源模板
+
+    # ---- 强化/精炼 ----
+    enhance_lv = Column(Integer, default=0)        # 强化等级 0-50+
+    # 精炼品质：0粗糙 1普通 2优良 3优秀 4精良 5精致 6完美 7史诗 8史诗+1 9史诗+2 10史诗+3
+    refine_quality = Column(SmallInteger, default=0)
+    refine_quality_name = Column(String(20), default="粗糙")
+    bind = Column(Boolean, default=True)           # 是否绑定
+
+    # ---- 属性 ----
+    main_attr_type = Column(String(20))            # 主属性类型：damage/defense/speed/hp
+    main_attr_val = Column(Integer, default=0)     # 主属性值
+    # 副属性JSON：{dodge_pct, crit_pct, atk_pct, spd_pct, def_pct, hp_suck_pct, mp_suck_pct}
+    sub_attrs = Column(JSON, default=dict)
+
+    # ---- 孔位与宝石镶嵌 ----
+    hole_count = Column(SmallInteger, default=0)   # 总孔数(0-5)
+    # 孔类型JSON：{holes: [{color:"青"/"橙"/"白", gem_id, gem_name, gem_attr}]}
+    gems_embed = Column(JSON, default=list)        # 镶嵌宝石列表
+
+    # ---- 兼容旧字段 ----
     quality = Column(String(20), default="common")
     damage = Column(Integer, default=0)
     defense = Column(Integer, default=0)
@@ -566,6 +663,44 @@ class JingwuEquipment(Base):
     is_equipped = Column(Boolean, default=False)
     gem_slots = Column(Integer, default=0)
     gems = Column(String(255))
+
+    # ---- 时间戳 ----
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class JingwuEquipTemplate(Base):
+    """精武堂装备模板/锻造配方表 - 30/40/50级图谱+材料"""
+    __tablename__ = "jingwu_equip_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(100), nullable=False)
+    # 部位：1手持 2身穿 3头戴 4脚穿 5佩戴
+    slot = Column(SmallInteger, nullable=False)
+    slot_name = Column(String(20))
+    level_required = Column(Integer, nullable=False)   # 30/40/50/60...
+    rarity = Column(String(20), default="common")      # 品质：普通/优良/优秀/精良/完美/史诗
+
+    # ---- 基础主属性（打造出的装备主属性参考值）----
+    main_attr_type = Column(String(20))                # damage/defense/speed/hp
+    main_attr_base = Column(Integer, default=0)        # 基础主属性值
+
+    # ---- 锻造配方 ----
+    # 图谱ID/名称
+    forge_tupu_id = Column(Integer)
+    forge_tupu_name = Column(String(100))
+    # 锻造材料JSON：{materials: [{item_id, item_name, count}]}
+    forge_materials = Column(JSON, default=list)
+    forge_gcoin = Column(Integer, default=0)           # 锻造G币费用
+
+    # ---- 产出副属性池 ----
+    sub_attr_pool = Column(JSON, default=list)         # 可能出现的副属性类型列表
+
+    # ---- 模板元数据 ----
+    icon = Column(String(255))
+    description = Column(Text)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class JingwuDungeon(Base):
@@ -597,6 +732,290 @@ class BattleLog(Base):
     reward_exp = Column(Integer, default=0)
     reward_items = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ==================== 十（补）精武堂扩展表：头衔/技能/宠物/法宝/等级经验 ====================
+
+class JingwuTitle(Base):
+    """精武堂头衔/称号配置表（少侠100G币~至尊战神200万元宝）"""
+    __tablename__ = "jingwu_titles"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    title_code = Column(String(50), unique=True)
+    name = Column(String(50), nullable=False, unique=True)   # 如：无名小卒/少侠/无敌圣者/至尊战神
+    level_required = Column(Integer, default=0)              # 佩戴等级要求
+    color = Column(String(20), default="#333")               # 称号颜色
+    # 获取价格：gcoin_cost 或 yuanbao_cost
+    gcoin_cost = Column(Integer, default=0)                  # G币价格
+    yuanbao_cost = Column(Integer, default=0)                # 元宝价格
+    # 属性加成JSON：{hp_pct, damage_pct, defense_pct, speed_pct, crit_pct...}
+    bonus_json = Column(JSON, default=dict)
+    req_win = Column(Integer, default=0)                     # 胜利数要求
+    description = Column(String(200))
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+
+
+class JingwuSkill(Base):
+    """精武堂技能配置表（15个技能：攻击/辅助/特殊）"""
+    __tablename__ = "jingwu_skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    skill_code = Column(String(50), unique=True)
+    name = Column(String(50), nullable=False, unique=True)
+    description = Column(Text)
+    icon = Column(String(100))
+
+    # 技能类型：attack攻击 / support辅助 / special特殊
+    type = Column(String(20), nullable=False, default="attack")
+    skill_type = Column(String(20), default="attack")  # 兼容旧字段
+
+    # ---- 攻击类技能参数 ----
+    damage_rate = Column(Integer, default=0)        # 伤害倍率%（剑气凌风120/御剑通灵180/人剑合一200/潇湘剑雨360）
+    damage_mult = Column(Float, default=1.0)        # 兼容旧字段
+    dot_rounds = Column(Integer, default=0)         # 持续伤害回合数（剑影留痕4回合）
+    dot_percent = Column(Integer, default=0)        # 每回合持续伤害%（剑影留痕10%气血）
+
+    # ---- 治疗/回复类 ----
+    heal_percent = Column(Integer, default=0)       # 即时回复%（妙手回春回50%）
+    heal_pct = Column(Float, default=0.0)           # 兼容旧字段
+    heal_type = Column(String(20))                  # hp/mp/both
+    heal_cond_hp_percent = Column(Integer, default=0)   # 触发条件：气血低于X%（妙手回春<50%）
+    heal_cond_mp_percent = Column(Integer, default=0)   # 触发条件：精气低于X%（神清气朗<30%）
+    hot_rounds = Column(Integer, default=0)         # 持续回复回合数（五灵归宗4回合）
+    hot_percent = Column(Integer, default=0)        # 每回合回复%（五灵归宗10%）
+
+    # ---- 封印/控制类 ----
+    seal_rounds = Column(Integer, default=0)        # 封印回合数（天罗地网2/三清缚影3）
+    control_turns = Column(Integer, default=0)      # 兼容旧字段
+
+    # ---- 反弹/反制类 ----
+    reflect_percent = Column(Integer, default=0)    # 反弹伤害%（回风扫叶50%）
+    reflect_rounds = Column(Integer, default=0)     # 反弹持续回合数（4回合）
+    counter_pct = Column(Float, default=0.0)        # 兼容旧字段
+
+    # ---- 特殊技能 ----
+    absorb_exp_target = Column(String(20))          # 吸星功法：好友
+    lifesteal_pct = Column(Float, default=0.0)      # 吸血比例（兼容）
+    transfer_dmg_to_hp = Column(Boolean, default=False)  # 斗转星移：伤害转气血
+    swap_attrs = Column(Boolean, default=False)     # 移形换影：交换属性
+    shield = Column(Boolean, default=False)         # 金钟护体
+
+    # ---- 消耗 ----
+    cost_mp = Column(Integer, default=0)            # 精气消耗
+    mp_cost = Column(Integer, default=10)           # 兼容旧字段
+    cost_sp = Column(Integer, default=0)            # 体力消耗
+    cost_gcoin = Column(Integer, default=0)         # G币消耗/学习费用
+    cost_yuanbao = Column(Integer, default=0)       # 元宝消耗
+    price_gcoin = Column(Integer, default=0)        # 兼容旧字段
+    price_sp = Column(Integer, default=0)           # 兼容旧字段
+
+    # ---- 学习条件 ----
+    level_required = Column(Integer, default=1)     # 等级要求
+    req_level = Column(Integer, default=1)          # 兼容旧字段
+    trigger_cond = Column(String(100))              # 触发条件描述
+    learn_gcoin = Column(Integer, default=0)
+    learn_yuanbao = Column(Integer, default=0)
+    is_default = Column(Boolean, default=False)     # 是否默认技能（吸星功法）
+    quality = Column(String(20), default="common")  # common/good/excellent/epic/legendary
+
+    # ---- 效果JSON（通用扩展）----
+    effect_json = Column(Text)
+
+    # ---- 排序/状态 ----
+    sort_order = Column(Integer, default=0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class JingwuUserSkill(Base):
+    """用户已学技能关联表"""
+    __tablename__ = "jingwu_user_skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    owner_id = Column(Integer, ForeignKey("jingwu_roles.id"), nullable=False)
+    skill_id = Column(Integer, ForeignKey("jingwu_skills.id"), nullable=False)
+    level = Column(Integer, default=1)
+    skill_level = Column(Integer, default=1)        # 技能等级（熟练度）
+    proficiency = Column(Integer, default=0)        # 熟练度
+    is_equipped = Column(Boolean, default=False)    # 是否装配到技能栏
+    equipped_slot = Column(SmallInteger)            # 技能栏位置1-6
+    learned_at = Column(DateTime, default=datetime.utcnow)
+
+    owner = relationship("JingwuRole", back_populates="user_skills")
+    skill = relationship("JingwuSkill")
+
+
+class JingwuPetTemplate(Base):
+    """宠物模板表（4种族基础配置）"""
+    __tablename__ = "jingwu_pet_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pet_code = Column(String(50), unique=True)
+    name = Column(String(50), nullable=False)
+    # 4种族：1龙(主血) 2虎(主速) 3凤(主精) 4龟(主防)
+    race = Column(SmallInteger, nullable=False)
+    race_name = Column(String(20))                  # 龙/虎/凤/龟
+    talent_name = Column(String(50))                # 龙凝血/虎瞬移/凤噬魔/龟格挡
+    talent_desc = Column(Text)
+    talent_effect_json = Column(JSON, default=dict)
+
+    icon = Column(String(100), default="🐾")
+    quality = Column(String(20), default="common")
+
+    # 1级基础属性
+    base_hp = Column(Integer, default=100)
+    base_mp = Column(Integer, default=50)
+    base_damage = Column(Integer, default=10)
+    base_defense = Column(Integer, default=5)
+    base_speed = Column(Integer, default=10)
+
+    # 每级成长
+    grow_hp = Column(Float, default=10)
+    grow_mp = Column(Float, default=5)
+    grow_damage = Column(Float, default=2)
+    grow_defense = Column(Float, default=1)
+    grow_speed = Column(Float, default=1)
+
+    # 附身给人物加成比例%
+    possess_bonus_json = Column(JSON, default=dict)
+    battle_skill = Column(String(50))               # 出战技能名
+    description = Column(Text)
+    price_gcoin = Column(Integer, default=0)
+    price_yuanbao = Column(Integer, default=0)
+
+
+class JingwuPet(Base):
+    """精武堂宠物表（4种族/5阶段/1-14星/100级）"""
+    __tablename__ = "jingwu_pets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    owner_id = Column(Integer, ForeignKey("jingwu_roles.id"), nullable=False)
+
+    # ---- 基础信息 ----
+    name = Column(String(50), nullable=False)
+    nickname = Column(String(50))
+    template_id = Column(Integer, ForeignKey("jingwu_pet_templates.id"), nullable=True)
+    pet_code = Column(String(50))
+    # 4种族：1龙(主血) 2虎(主速) 3凤(主精) 4龟(主防)
+    race = Column(SmallInteger, nullable=False)
+    race_name = Column(String(20))
+    talent_name = Column(String(50))                # 天赋：龙凝血/虎瞬移/凤噬魔/龟格挡
+
+    # ---- 阶段与星级 ----
+    # 5阶段：1野兽(1-19) 2灵兽(20-39) 3妖兽(40-59) 4圣兽(60-79) 5神兽(80-100)
+    stage = Column(SmallInteger, default=1)
+    stage_name = Column(String(20), default="野兽")
+    star = Column(SmallInteger, default=1)          # 星级1-14
+    max_star = Column(SmallInteger, default=14)
+
+    # ---- 等级经验 ----
+    level = Column(Integer, default=1)
+    max_level = Column(Integer, default=100)        # 宠物等级上限100
+    exp = Column(Integer, default=0)
+    exp_required = Column(Integer, default=100)
+
+    # ---- 吞噬系统 ----
+    devour_count = Column(Integer, default=0)       # 吞噬次数
+    devour_limit = Column(Integer, default=1000)   # 吞噬上限
+    quality = Column(String(20), default="common")
+
+    # ---- 状态：0休息 1携带(出战) 2附身(加属性) ----
+    status = Column(SmallInteger, default=0)
+    is_resting = Column(Boolean, default=True)
+    is_battling = Column(Boolean, default=False)    # 出战
+    is_possessing = Column(Boolean, default=False)  # 附身（兼容旧字段）
+
+    # ---- 属性 ----
+    hp = Column(Integer, default=100)
+    max_hp = Column(Integer, default=100)
+    mp = Column(Integer, default=50)
+    max_mp = Column(Integer, default=50)
+    damage = Column(Integer, default=10)
+    defense = Column(Integer, default=5)
+    speed = Column(Integer, default=10)
+    intimacy = Column(Integer, default=0)           # 亲密度
+    loyalty = Column(Integer, default=100)          # 忠诚度
+
+    # ---- 技能 ----
+    skills_json = Column(JSON, default=list)        # 宠物技能列表
+
+    # ---- 时间戳 ----
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # ---- 关系 ----
+    owner = relationship("JingwuRole", back_populates="pets", foreign_keys=[owner_id])
+    template = relationship("JingwuPetTemplate")
+
+
+class JingwuTalisman(Base):
+    """精武堂法宝表（50级开启，9阶段，熟练度/孔数/属性词条）"""
+    __tablename__ = "jingwu_talismans"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    owner_id = Column(Integer, ForeignKey("jingwu_roles.id"), nullable=False)
+
+    name = Column(String(100), nullable=False)
+    icon = Column(String(100))
+    quality = Column(String(20), default="common")
+
+    # ---- 阶段（9阶）：0一元 1二气 2三才 3四相 4五仪 5六甲 6七星 7八卦 8九宫 ----
+    stage = Column(SmallInteger, default=0)
+    stage_name = Column(String(20), default="一元")
+    level = Column(Integer, default=1)              # 兼容旧字段
+    level_required = Column(Integer, default=50)    # 50级开启
+
+    # ---- 熟练度 ----
+    exp = Column(Integer, default=0)
+    proficiency = Column(Integer, default=0)        # 熟练度
+    max_proficiency = Column(Integer, default=10000)
+
+    # ---- 孔数与宝石 ----
+    hole_count = Column(SmallInteger, default=0)    # 孔数(0-3)
+    gems_embed = Column(JSON, default=list)         # 镶嵌宝石
+
+    # ---- 属性词条JSON ----
+    # 可出现词条：怒斩/韧性/闪击/精准/必杀/血速/圣盾/技伤/减暴伤
+    # 格式：{attrs:[{name:"怒斩", val:5}, {name:"韧性", val:3}]}
+    attr_json = Column(JSON, default=dict)
+    attrs_count = Column(SmallInteger, default=0)   # 已激活词条数
+    max_attrs = Column(SmallInteger, default=5)     # 最大词条数
+
+    # ---- 战斗属性加成（由词条汇总）----
+    damage = Column(Integer, default=0)
+    defense = Column(Integer, default=0)
+    hp = Column(Integer, default=0)
+    speed = Column(Integer, default=0)
+    crit = Column(Integer, default=0)
+    skill_name = Column(String(50))
+    skill_desc = Column(Text)
+
+    # ---- 状态 ----
+    is_equipped = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    owner = relationship("JingwuRole", foreign_keys=[owner_id], back_populates="talismans")
+
+
+class JingwuLevelExp(Base):
+    """精武堂等级经验配置表（1-150级，含修炼4小时经验）"""
+    __tablename__ = "jingwu_level_exp"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    level = Column(Integer, unique=True, nullable=False)
+    exp_needed = Column(Integer, default=0)         # 升级所需经验
+    exp_4h_normal = Column(Integer, default=0)      # 普通修炼4小时经验
+    exp_4h_xiuzhen = Column(Integer, default=0)     # 80+修真4小时双倍经验
+    title_name = Column(String(50))                 # 对应称号名
+    max_sp = Column(Integer, default=100)           # 体力上限
+    potential_gain = Column(Integer, default=3)     # 该等级获得潜能点数（每级3）
+    # 关键等级数据参考：
+    # 1级: exp=240, normal=20, xiuzhen=0
+    # 10级: exp=4560, normal=3168
+    # 20级: exp=12480, normal=27720
+    # 150级: exp=1215840, xiuzhen=1151329608
 
 
 # ==================== 十一、阳光农场模块 ====================
@@ -1163,64 +1582,155 @@ class CityFeed(Base):
 # ==================== 二十一、精武堂补充 - 帮派系统 ====================
 
 class JingwuGang(Base):
+    """精武堂帮派表（ID从1000起，名称12字内中文，创建等级40+）"""
     __tablename__ = "jingwu_gangs"
 
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    name = Column(String(50), unique=True, nullable=False)
-    leader_id = Column(Integer)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)  # 帮派ID从1000起（需在DB设置AUTO_INCREMENT=1000）
+    name = Column(String(12), unique=True, nullable=False)  # 名称12字内中文
+    leader_id = Column(Integer, ForeignKey("jingwu_roles.id"))
     leader_name = Column(String(50))
     notice = Column(Text)
+    announcement = Column(Text)
     description = Column(String(255))
-    level = Column(Integer, default=1)
-    exp = Column(Integer, default=0)
-    funds = Column(Integer, default=0)
+
+    # ---- 等级/资金/繁荣 ----
+    level = Column(SmallInteger, default=1)     # 帮派等级1-5
+    max_level = Column(SmallInteger, default=5)
+    exp = Column(Integer, default=0)            # 帮派经验/繁荣度
+    prosperity = Column(Integer, default=0)     # 繁荣度
+    funds = Column(Integer, default=0)          # 帮派资金(G币)
+
+    # ---- 成员 ----
     member_count = Column(Integer, default=1)
-    member_limit = Column(Integer, default=30)
-    status = Column(SmallInteger, default=1)
+    member_limit = Column(Integer, default=30)  # 每级可提升上限
+    vice_leader_count = Column(SmallInteger, default=1)  # 副帮主数
+    elder_count = Column(SmallInteger, default=2)        # 长老数
+
+    # ---- 入帮条件 ----
+    create_level_required = Column(Integer, default=40)  # 创建等级40+
+    create_gcoin_cost = Column(Integer, default=50000)   # 创建帮派费用
+    join_level_required = Column(Integer, default=20)    # 入帮等级20+
+    join_gcoin_fee = Column(Integer, default=500)        # 入帮费500G币
+    join_need_approval = Column(Boolean, default=True)   # 入帮需审批
+
+    # ---- 闻香炉 ----
+    incense_energy = Column(Integer, default=0) # 闻香炉灵气
+    incense_level = Column(SmallInteger, default=0)  # 香炉等级
+    incense_max_energy = Column(Integer, default=1000)
+
+    # ---- 香炉修炼/替身术状态 ----
+    # 替身术心法：可同时修炼和比武
+    xinshen_tishen = Column(Boolean, default=False)    # 替身术心法是否开启
+    xinshen_qiangshen_lv = Column(Integer, default=0)  # 强身(气血)等级
+    xinshen_ningqi_lv = Column(Integer, default=0)     # 凝气(精气)等级
+    xinshen_yijin_lv = Column(Integer, default=0)      # 易筋(伤害)等级
+    xinshen_xisui_lv = Column(Integer, default=0)      # 洗髓(防御)等级
+    xinshen_qingshen_lv = Column(Integer, default=0)   # 轻身(速度)等级
+
+    # ---- 状态 ----
+    status = Column(SmallInteger, default=1)    # 1正常 0解散 2冻结
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # ---- 关系 ----
+    members = relationship("JingwuGangMember", back_populates="gang", cascade="all, delete-orphan")
+    skills = relationship("JingwuGangSkill", back_populates="gang", cascade="all, delete-orphan")
+    leader = relationship("JingwuRole", foreign_keys=[leader_id])
 
 
 class JingwuGangMember(Base):
+    """帮派成员表"""
     __tablename__ = "jingwu_gang_members"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gang_id = Column(Integer, ForeignKey("jingwu_gangs.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     role_id = Column(Integer, ForeignKey("jingwu_roles.id"))
-    role_name = Column(String(20), default="member")
+    role_name = Column(String(20), default="member")  # 职位：leader/vice_leader/elder/member
+    position = Column(String(20), default="member")   # 兼容旧字段
     nickname = Column(String(50))
-    contribution = Column(Integer, default=0)
-    position = Column(String(20), default="member")
+    contribution = Column(Integer, default=0)         # 贡献度
+    total_contribution = Column(Integer, default=0)   # 历史总贡献
+    gcoin_today = Column(Integer, default=0)          # 今日G币贡献
     joined_at = Column(DateTime, default=datetime.utcnow)
+    last_contribute_at = Column(DateTime)
+
+    gang = relationship("JingwuGang", back_populates="members")
+    role = relationship("JingwuRole", foreign_keys=[role_id])
 
 
 class JingwuGangSkill(Base):
+    """帮派心法表（替身术/强身/凝气/易筋/洗髓/轻身）"""
     __tablename__ = "jingwu_gang_skills"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     gang_id = Column(Integer, ForeignKey("jingwu_gangs.id"))
     skill_name = Column(String(50))
+    # 心法类型：tishen替身术/qiangshen强身/ningqi凝气/yijin易筋/xisui洗髓/qingshen轻身
     skill_type = Column(String(20))
     level = Column(Integer, default=1)
     max_level = Column(Integer, default=10)
-    effect_json = Column(Text)
+    # 效果JSON：{hp_bonus, mp_bonus, damage_bonus, defense_bonus, speed_bonus, can_dual_train}
+    effect_json = Column(JSON, default=dict)
+    # 升级消耗
+    upgrade_funds = Column(Integer, default=0)
+    upgrade_prosperity = Column(Integer, default=0)
+
+    gang = relationship("JingwuGang", back_populates="skills")
 
 
-# ==================== 二十二、武魂、法宝等精武堂扩展 ====================
+# ==================== 二十二、武魂系统（80级开启） ====================
 
 class JingwuWuhun(Base):
+    """精武堂武魂表（80级开启，五系：土80/水90/火100/金110/木120）"""
     __tablename__ = "jingwu_wuhun"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     role_id = Column(Integer, ForeignKey("jingwu_roles.id"), unique=True)
-    wuhun_type = Column(String(20), default="green")
+
+    # ---- 五系：80土/90水/100火/110金/120木 ----
+    wuhun_type = Column(String(20), default="earth")  # earth/water/fire/metal/wood
+    element_name = Column(String(10), default="土")   # 土/水/火/金/木
+    unlock_level = Column(Integer, default=80)        # 80级开启
+    level_required = Column(Integer, default=80)      # 对应系开启等级
+
+    # ---- 品质：普通/优秀/精良/完美/传说，每档5星 ----
+    quality = Column(String(20), default="common")    # common/good/excellent/perfect/legendary
+    quality_star = Column(SmallInteger, default=1)    # 1-5星
+    max_quality_star = Column(SmallInteger, default=5)
+
+    # ---- 等级经验 ----
     level = Column(Integer, default=1)
+    max_level = Column(Integer, default=10)
     exp = Column(Integer, default=0)
+
+    # ---- 属性类型：single单属性 / double双属性 ----
+    attr_type = Column(String(20), default="single")
+
+    # ---- 单属性（8种）：暴击/抗暴击/闪避/防御/伤害/命中/气血/速度 ----
+    single_attr_name = Column(String(20))             # crit/crit_resist/dodge/defense/damage/accuracy/hp/speed
+    single_attr_val = Column(Integer, default=0)      # 单属性值
+
+    # ---- 双属性（8种组合）----
+    # 斩杀(伤害+破防)/狂暴(暴击+暴伤)/坚韧(防御+格挡)/突袭(速度+命中)
+    # 猛击(反击+技伤)/圣佑(气血+减暴伤)/轻灵(闪避+抗反击)/沉默(抗暴击+抗技伤)
+    double_attr_name = Column(String(20))             # zhan_sha/kuang_bao/jian_ren/tu_xi/meng_ji/sheng_you/qing_ling/chen_mo
+    double_attr_val1 = Column(Integer, default=0)
+    double_attr_val2 = Column(Integer, default=0)
+
+    # ---- 兼容旧字段 ----
     str_bonus = Column(Integer, default=0)
     con_bonus = Column(Integer, default=0)
     agi_bonus = Column(Integer, default=0)
     def_bonus = Column(Integer, default=0)
     mag_bonus = Column(Integer, default=0)
+
+    # ---- 时间戳 ----
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # ---- 关系 ----
+    role = relationship("JingwuRole", foreign_keys=[role_id])
 
 
 class JingwuFabao(Base):

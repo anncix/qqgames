@@ -393,6 +393,10 @@ def init_default_data(db: Session):
 async def startup_event():
     db = next(get_db())
     init_default_data(db)
+
+    # 初始化精武堂基础数据（技能、等级配置、装备模板、头衔等）
+    from utils.jingwutang import init_jingwu_data
+    init_jingwu_data(db)
     
     admin_user = db.query(User).filter(User.username == "admin").first()
     if not admin_user:
