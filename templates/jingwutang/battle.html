@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t('battle') }} - {{ t('jingwutang') }}{% endblock %}
+{% block page_title %}{{ t('battle') }}{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/jingwutang">{{ t('battle') }}</a>|
+    <a href="/jingwutang/attributes">{{ t('attribute') }}</a>|
+    <a href="/jingwutang/inventory">{{ t('inventory') }}</a>|
+    <a href="/">{{ t('home') }}</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section" style="text-align: center;">
+    {% if result.winner and result.winner.id == role.id %}
+    <div style="font-size: 32px; color: var(--success-color); margin: 20px 0;">🏆 {{ t('battle_win') }}</div>
+    {% elif result.winner %}
+    <div style="font-size: 32px; color: var(--accent-color); margin: 20px 0;">💔 {{ t('battle_lose') }}</div>
+    {% else %}
+    <div style="font-size: 32px; color: var(--silver-color); margin: 20px 0;">🤝 {{ t('battle_draw') }}</div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+        <div style="text-align: center; flex: 1;">
+            <div style="font-weight: bold;">{{ role.name }}</div>
+            <div style="color: var(--silver-color);">{{ t('level') }}.{{ role.level }}</div>
+            <div class="hp-bar" style="margin-top: 5px;">
+                <div class="hp-bar-fill" style="width: {{ (role.hp / role.max_hp * 100)|round|int }}%"></div>
+            </div>
+            <div style="font-size: 12px;">{{ role.hp }}/{{ role.max_hp }}</div>
+        </div>
+        <div style="padding: 0 20px; font-size: 24px; align-self: center;">VS</div>
+        <div style="text-align: center; flex: 1;">
+            <div style="font-weight: bold;">{{ opponent.name }}</div>
+            <div style="color: var(--silver-color);">{{ t('level') }}.{{ opponent.level }}</div>
+            <div class="hp-bar" style="margin-top: 5px;">
+                <div class="hp-bar-fill" style="width: {{ (opponent.hp / opponent.max_hp * 100)|round|int }}%"></div>
+            </div>
+            <div style="font-size: 12px;">{{ opponent.hp }}/{{ opponent.max_hp }}</div>
+        </div>
+    </div>
+</div>
+
+{% if result.winner and result.winner.id == role.id %}
+<div class="section">
+    <div class="section-title">【{{ t('rewards') }}】</div>
+    <div class="stat-line">🪙 {{ t('silver') }}: +{{ result.reward_silver }}</div>
+    <div class="stat-line">⭐ {{ t('exp') }}: +{{ result.reward_exp }}</div>
+</div>
+{% endif %}
+
+<div class="section">
+    <div class="section-title">【{{ t('battle_log') }}】</div>
+    <div class="battle-log">{{ battle_log }}</div>
+</div>
+
+<div style="margin-top: 20px; text-align: center;">
+    <a href="/jingwutang" class="btn">{{ t('back') }}</a>
+    <a href="/jingwutang/battle/{{ opponent.id }}" class="btn btn-danger">{{ t('fight') }}</a>
+</div>
+{% endblock %}

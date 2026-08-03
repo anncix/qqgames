@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}我的属性 - 精武堂{% endblock %}
+{% block page_title %}我的属性{% endblock %}
+
+{% block nav %}
+<div class="nav-bar">
+    <a href="/jingwutang">比武</a>|
+    <a href="/jingwutang/attributes" class="active">属性</a>|
+    <a href="/jingwutang/inventory">行囊</a>|
+    <a href="/jingwutang/fabao">法宝</a>|
+    <a href="/jingwutang/wuhun">武魂</a>|
+    <a href="/jingwutang/polaris">北极星</a>|
+    <a href="/jingwutang/dungeon">副本</a>|
+    <a href="/">家园</a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="section">
+    <div style="margin-bottom: 10px;">
+        获赞:0个 <a href="#">记录</a>.<a href="#">规则</a>
+    </div>
+    <div style="margin-bottom: 5px;">
+        排名:第{{ role.arena_rank or 8 }}名(1号擂台)
+    </div>
+    <div style="margin-bottom: 15px;">
+        排名:第{{ role.arena_rank or 8 }}名(1号单挑)
+    </div>
+    
+    <div style="margin-bottom: 10px; font-size: 15px; line-height: 1.8;">
+        <a href="#">装备</a>.<a href="#">时装</a>.<a href="#">宠物</a>.<a href="/jingwutang/fabao">法宝</a><br>
+        <a href="/jingwutang/wuhun">武魂</a>.<a href="#">技能</a>.<a href="#">内功</a>.<a href="#">经脉</a><br>
+        <a href="#">阵型</a>.<a href="#">图腾</a>.<a href="#">荣誉</a>.<a href="#">神兵</a>
+    </div>
+    
+    <div style="margin-bottom: 10px;">
+        <span style="font-size: 18px; font-weight: bold;">综合战力:{{ role.combat_power }}</span>
+        <a href="#">更新战力</a>
+    </div>
+    
+    {% if role.transferred %}
+    <div style="margin: 10px 0; padding: 10px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 6px; color: white; text-align: center;">
+        <span style="font-size: 18px; font-weight: bold;">【{{ role.transfer_name }}】</span>
+        <span style="margin-left: 10px; font-size: 14px;">已转职</span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="section">
+    <div class="section-title">【基础属性】</div>
+    <div class="stat-line">气血:{{ stats.hp }}|防御:{{ stats.defense }}</div>
+    <div class="stat-line">速度:{{ stats.speed }}|精气:{{ stats.mp }}</div>
+    <div class="stat-line">伤害:{{ stats.damage }}</div>
+</div>
+
+<div class="section">
+    <div class="section-title">【高阶属性】</div>
+    <div class="stat-line">命中:{{ stats.accuracy }}|闪避:{{ stats.dodge }}</div>
+    <div class="stat-line">破防:{{ stats.defense // 3 }}|格挡:{{ stats.defense // 2 }}</div>
+    <div class="stat-line">吸血:{{ stats.lifesteal }}|吸魔:{{ stats.lifesteal + 100 }}</div>
+    <div class="stat-line">暴击:{{ stats.crit }}|抗暴击:{{ stats.crit + 100 }}</div>
+    <div class="stat-line">反击:{{ stats.counter }}|抗反击:{{ stats.counter - 200 }}</div>
+    <div class="stat-line">技伤:{{ stats.damage // 5 }}|抗技伤:{{ stats.damage // 6 }}</div>
+    <div class="stat-line">暴伤:{{ stats.crit_damage }}|减暴伤:{{ stats.crit_damage - 300 }}</div>
+    <div style="margin-top: 10px;">
+        潜能:{{ role.potential }} <a href="#">查看</a>
+    </div>
+</div>
+
+{% if role.potential > 0 %}
+<div class="section">
+    <div class="section-title">【潜能点:{{ role.potential }}】</div>
+    <form method="post" action="/jingwutang/attributes/allocate" id="allocForm">
+        <div class="potential-bar">
+            <div class="potential-stat">
+                <span>力量({{ role.str_point }})</span>
+                <button type="submit" name="stat" value="str">+</button>
+            </div>
+            <div class="potential-stat">
+                <span>体质({{ role.con_point }})</span>
+                <button type="submit" name="stat" value="con">+</button>
+            </div>
+            <div class="potential-stat">
+                <span>敏捷({{ role.agi_point }})</span>
+                <button type="submit" name="stat" value="agi">+</button>
+            </div>
+            <div class="potential-stat">
+                <span>防御({{ role.def_point }})</span>
+                <button type="submit" name="stat" value="def">+</button>
+            </div>
+            <div class="potential-stat">
+                <span>魔力({{ role.mag_point }})</span>
+                <button type="submit" name="stat" value="mag">+</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{# 转职系统 - 80级开启神/魔/仙 #}
+{% if role.level >= 80 and not role.transferred %}
+<div class="section" style="border: 2px solid var(--accent-color); border-radius: 8px; padding: 15px;">
+    <div class="section-title" style="color: var(--accent-color);">✨ 【转职 - 神/魔/仙】</div>
+    <div style="margin-bottom: 15px; color: var(--silver-color); font-size: 14px;">
+        达到80级可选择神、魔、仙三条转职路线，获得超强属性加成！
+    </div>
+    <form method="post" action="/jingwutang/transfer">
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+            <div style="text-align: center; padding: 15px 10px; border: 2px solid #ffd700; border-radius: 6px; background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);">
+                <div style="font-size: 32px;">⚡</div>
+                <div style="font-weight: bold; color: #8b6914; margin: 5px 0;">神</div>
+                <div style="font-size: 12px; color: #8b6914;">伤害+30% 防御+20% 气血+30%</div>
+                <button type="submit" name="path" value="shen" class="btn" style="margin-top: 10px; width: 100%; background: #ffd700; color: #333;">选择神</button>
+            </div>
+            <div style="text-align: center; padding: 15px 10px; border: 2px solid #9b59b6; border-radius: 6px; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">
+                <div style="font-size: 32px;">🔥</div>
+                <div style="font-weight: bold; color: white; margin: 5px 0;">魔</div>
+                <div style="font-size: 12px; color: #f3e5f5;">伤害+50% 暴击+40% 速度+20%</div>
+                <button type="submit" name="path" value="mo" class="btn btn-danger" style="margin-top: 10px; width: 100%;">选择魔</button>
+            </div>
+            <div style="text-align: center; padding: 15px 10px; border: 2px solid #3498db; border-radius: 6px; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
+                <div style="font-size: 32px;">🌟</div>
+                <div style="font-weight: bold; color: white; margin: 5px 0;">仙</div>
+                <div style="font-size: 12px; color: #e3f2fd;">气血+40% 精气+50% 闪避+30%</div>
+                <button type="submit" name="path" value="xian" class="btn" style="margin-top: 10px; width: 100%; background: #3498db;">选择仙</button>
+            </div>
+        </div>
+    </form>
+</div>
+{% elif role.level < 80 %}
+<div class="section" style="opacity: 0.7;">
+    <div class="section-title">✨ 【转职系统】</div>
+    <div style="padding: 15px; text-align: center; color: var(--silver-color); border: 1px dashed var(--border-color); border-radius: 6px;">
+        达到80级可开启转职（神/魔/仙）<br>
+        当前等级: {{ role.level }}/80
+    </div>
+</div>
+{% endif %}
+
+<div class="section">
+    {% if role.is_training %}
+    <div class="stat-line">
+        <a href="#">练功房</a>:略有所获({{ training_remaining }})
+        <a href="/jingwutang/training/stop">停止</a>
+    </div>
+    {% else %}
+    <div class="stat-line">
+        <a href="#">练功房</a>:未修炼
+    </div>
+    {% endif %}
+    <div class="stat-line">
+        <a href="#">战神宫</a>:未修炼
+    </div>
+    <div class="stat-line">
+        身份:无(0%)
+    </div>
+</div>
+
+<div style="margin-top: 20px; line-height: 2;">
+    <a href="/jingwutang">返回</a>
+</div>
+{% endblock %}
