@@ -64,19 +64,19 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <div style="font-weight:bold; font-size:16px;">🌾 阳光牧场</div>
         <div style="background:#4a8a2a; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">
-            Lv.{{ farm.level if farm else 1 }}
+            Lv.{{ farm.farm_level if farm else 1 }}
         </div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:13px;">
-        <div>🪙 金币: <b class="text-blue">{{ farm.coins if farm else 500 }}</b></div>
-        <div>🌱 经验: <b>{{ farm.exp if farm else 0 }}/{{ (farm.level if farm else 1) * 100 }}</b></div>
-        <div>🌾 已种: <b>{{ farm.planted_count if farm else 0 }}/16</b></div>
-        <div>🐄 动物: <b>{{ farm.animal_count if farm else 0 }}/6</b></div>
+        <div>🪙 金币: <b class="text-blue">{{ farm.farm_gold if farm else 500 }}</b></div>
+        <div>🌱 经验: <b>{{ farm.farm_exp if farm else 0 }}/{{ (farm.farm_level if farm else 1) * 100 }}</b></div>
+        <div>🌾 已种: <b>{{ (farm.plots | selectattr('status','in',['growing','ready']) | list | length) if farm else 0 }}/16</b></div>
+        <div>🐄 动物: <b>{{ (farm.animals | length) if farm else 0 }}/6</b></div>
     </div>
-    {% if farm and farm.exp is defined %}
+    {% if farm and farm.farm_exp is defined %}
     <div style="margin-top:8px;">
         <div class="progress-bar">
-            <div class="progress-fill" style="width: {{ (farm.exp / ((farm.level if farm else 1) * 100)) * 100 if (farm.level if farm else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #4a8a2a 0%, #6aaa4a 100%);"></div>
+            <div class="progress-fill" style="width: {{ (farm.farm_exp / ((farm.farm_level if farm else 1) * 100)) * 100 if (farm.farm_level if farm else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #4a8a2a 0%, #6aaa4a 100%);"></div>
         </div>
     </div>
     {% endif %}
@@ -115,16 +115,12 @@
     <div class="section-body">
         <div class="tip mb-5">点击空地种植作物，成熟后点击收获</div>
         <div class="farm-grid">
-            {% for i in range(16) %}
-            <a href="/sunny-farm/plot/{{ i+1 }}" class="farm-plot plot-empty">
-                {% if farm and farm.plots and farm.plots[i] %}
-                    {% if farm.plots[i].ready %}
-                    <span>🌾</span>
-                    {% elif farm.plots[i].planted %}
-                    <span>🌱</span>
-                    {% else %}
-                    <span style="opacity:0.4;">➕</span>
-                    {% endif %}
+            {% for plot in plots %}
+            <a href="/sunny-farm/plot/{{ plot.plot_no }}" class="farm-plot plot-empty">
+                {% if plot.status == 'ready' %}
+                <span>🌾</span>
+                {% elif plot.status == 'growing' %}
+                <span>🌱</span>
                 {% else %}
                 <span style="opacity:0.4;">➕</span>
                 {% endif %}

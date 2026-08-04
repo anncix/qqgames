@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, Table, SmallInteger, Numeric, JSON
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, Table, SmallInteger, Numeric, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -94,6 +94,7 @@ class Wallet(Base):
     g_coin = Column(Integer, default=5000)
     gold_coin = Column(Integer, default=0)
     premium_coin = Column(Integer, default=0)
+    silver_coin = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
@@ -1119,6 +1120,38 @@ class FarmVillage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class Crop(Base):
+    """作物字典（spec 阳光牧场作物数据表：50作物 × 等级/类型/单价/产量/成熟/再熟/售价）"""
+    __tablename__ = "farm_crops"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    grow_seconds = Column(Integer, default=60)   # 总成熟时长（秒）
+    stages = Column(Integer, default=4)          # 阶段数(种子/发芽/生长/成熟)
+    seed_item_key = Column(String(64))
+    harvest_item_key = Column(String(64))
+    harvest_exp = Column(Integer, default=10)
+    price = Column(Integer, default=50)          # 种子价格
+    level_req = Column(Integer, default=0)       # 解锁等级
+    crop_type = Column(String(16), default="一季")  # 一季/多季
+    min_yield = Column(Integer, default=25)      # 最低产量
+    regrow_seconds = Column(Integer, default=0)  # 再熟间隔(秒)，0=一季
+    sell_price = Column(Integer, default=0)      # 果实售价
+
+
+class ItemFarm(Base):
+    """阳光牧场物品字典（50 种子 + 50 收获物）"""
+    __tablename__ = "farm_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="farm")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")
+
+
 # ==================== 十二、美味小镇模块 ====================
 
 class TownProfile(Base):
@@ -1237,6 +1270,19 @@ class TownOrder(Base):
     completed_at = Column(DateTime)
 
 
+class ItemTown(Base):
+    """美味小镇物品字典（222 食材：217 具名 + 5 万能）"""
+    __tablename__ = "town_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="town")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")
+
+
 # ==================== 十三、魔法花园模块 ====================
 
 class GardenProfile(Base):
@@ -1348,6 +1394,98 @@ class GardenComposeRule(Base):
     cost_json = Column(Text, nullable=False)
     success_rate = Column(Numeric(5, 2), default=1.00)
     gold_cost = Column(Integer, default=0)
+
+
+# ==================== 魔法花园完整数据（迁移自 3g_games，与上方简化表并存） ====================
+
+class ItemGarden(Base):
+    """魔法花园物品字典（520 作物 + 1024 材料）"""
+    __tablename__ = "garden_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="garden")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")
+
+
+class GardenSeed(Base):
+    """花种定义（Seed）：播种用的物品定义"""
+    __tablename__ = "garden_seeds"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    min_level = Column(Integer, default=1)
+    grow_seconds = Column(Integer, default=60)
+    stages = Column(Integer, default=4)
+    stage_actions = Column(Text, default="")
+    yield_min = Column(Integer, default=1)
+    yield_max = Column(Integer, default=2)
+    possible_blooms = Column(Text, default="")
+    rarity = Column(String(16), default="普通")
+    item_level = Column(Integer, default=1)
+    sellable = Column(Boolean, default=True)
+    seed_item_key = Column(String(64))
+    obtain_sources = Column(String(128), default="shop")
+
+
+class GardenBloom(Base):
+    """花朵定义（Bloom）：收获得到的实体花朵定义"""
+    __tablename__ = "garden_blooms"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    color = Column(String(16), default="白")
+    rarity = Column(String(16), default="普通")
+    item_level = Column(Integer, default=1)
+    sell_price = Column(Integer, default=10)
+    album_entry_key = Column(String(32))
+    item_key = Column(String(64))
+    special_tag = Column(String(32), default="")
+
+
+class GardenAlbumEntryFull(Base):
+    """花谱项（AlbumEntry）：图鉴收集条目，按系列分组（完整数据，与简化 GardenAlbumEntry 并存）"""
+    __tablename__ = "garden_album_entries_full"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    series = Column(String(32), index=True)
+    name = Column(String(32))
+    description = Column(String(128), default="")
+    bloom_key = Column(String(32))
+
+
+class GardenRecipe(Base):
+    """合成配方：花朵/材料 -> 花种"""
+    __tablename__ = "garden_recipes"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(32))
+    result_seed_key = Column(String(32))
+    result_qty = Column(Integer, default=1)
+    materials = Column(Text)
+    success_rate = Column(Integer, default=80)
+    fail_credit_threshold = Column(Integer, default=5)
+    target_level = Column(Integer, default=1)
+    require_lock_check = Column(Boolean, default=False)
+
+
+class GardenOrderTemplate(Base):
+    """订单模板：订单池按等级分层 pool(L)"""
+    __tablename__ = "garden_order_templates"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    order_type = Column(String(16), default="normal", index=True)
+    requirements = Column(Text)
+    level_min = Column(Integer, default=1, index=True)
+    level_max = Column(Integer, default=99)
+    weight = Column(Integer, default=100)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ==================== 十四、纵横四海模块 ====================
@@ -1488,6 +1626,123 @@ class SeaUserEquipment(Base):
     gem_json = Column(Text)
     equipped = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ItemSea(Base):
+    """纵横四海物品字典（宝石/卡片/消耗品/船只等，可被背包引用）"""
+    __tablename__ = "sea_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="sea")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")
+
+
+class SeaDungeon(Base):
+    """副本定义（spec 副本等级要求表）"""
+    __tablename__ = "sea_dungeons"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    entry_city = Column(String(32))
+    difficulties = Column(Text, default="[]")
+    level_reqs = Column(Text, default="[]")
+    exps = Column(Text, default="[]")
+    drops = Column(Text, default="[]")
+    open_days = Column(Text, default="[]")
+
+
+class SeaEquipSet(Base):
+    """装备套装定义（spec 装备套装路线：等级 + 获取方式）"""
+    __tablename__ = "sea_equip_sets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    level_req = Column(Integer, default=1)
+    source = Column(String(128))
+    pieces = Column(Integer, default=4)
+
+
+class SeaEquipPiece(Base):
+    """装备部件件名（spec 全部装备件名清单）
+
+    set_key:   所属套装 key（散件为空）
+    slot:      部位 武器/副手/头盔/衣服/腰带/鞋子/配饰
+    confirmed: 是否官方文本确认件名（False=按命名规律推测）
+    """
+    __tablename__ = "sea_equip_pieces"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    set_key = Column(String(32), default="", index=True)
+    slot = Column(String(16))
+    level_req = Column(Integer, default=1)
+    source = Column(String(128), default="")
+    confirmed = Column(Boolean, default=False)
+
+
+class SeaHolyMark(Base):
+    """圣痕定义（spec 圣痕种类：10种，白/绿/蓝/紫品质）"""
+    __tablename__ = "sea_holy_marks"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    quality = Column(String(16))
+
+
+class SeaShip(Base):
+    """船只字典（spec 船只系统：14 艘船）"""
+    __tablename__ = "sea_ships"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    buy_city = Column(String(64), default="")
+    price = Column(Integer, default=1000)
+    currency = Column(String(8), default="铜")
+    load = Column(Integer, default=35)
+    consume_per_100 = Column(Integer, default=15)
+
+
+class SeaMainQuest(Base):
+    """主线任务链（spec 主线任务系统：12 条链）"""
+    __tablename__ = "sea_main_quests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    rounds = Column(Integer, default=10)
+    reward_desc = Column(String(255), default="")
+    sort = Column(Integer, default=0)
+
+
+class SeaCitySpecialty(Base):
+    """城市贸易特产（spec 贸易跑商：每城市特产列表）"""
+    __tablename__ = "sea_city_specialties"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    city_key = Column(String(32), unique=True, index=True)
+    city_name = Column(String(32))
+    region = Column(String(16), default="")
+    specialties = Column(Text, default="[]")
+
+
+class SeaPetSkill(Base):
+    """宠物技能字典（spec 宠物技能：23 种技能 + T0/T1/T2 分级）"""
+    __tablename__ = "sea_pet_skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(32), unique=True, index=True)
+    name = Column(String(32))
+    effect = Column(String(255), default="")
+    tier = Column(String(4), default="T2")
 
 
 # ==================== 十五、家园主页配置 ====================
@@ -1782,6 +2037,16 @@ class SeaPet(Base):
     icon = Column(String(100))
     description = Column(Text)
 
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py）----
+    key = Column(String(32), unique=True, index=True)
+    quality = Column(String(16), default="白")
+    atk = Column(Integer, default=10)
+    defense = Column(Integer, default=10)
+    agile = Column(Integer, default=10)
+    hp = Column(Integer, default=100)
+    skill_tag = Column(String(64), default="")
+    source = Column(String(64), default="")
+
 
 class SeaUserPet(Base):
     __tablename__ = "sea_user_pets"
@@ -1817,6 +2082,12 @@ class SeaMount(Base):
     icon = Column(String(100))
     description = Column(Text)
 
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py，level_req → level_required）----
+    key = Column(String(32), unique=True, index=True)
+    stat_type = Column(String(16), default="flat")
+    stat_value = Column(Integer, default=100)
+    category = Column(String(32), default="普通")
+
 
 class SeaUserMount(Base):
     __tablename__ = "sea_user_mounts"
@@ -1846,6 +2117,10 @@ class SeaWing(Base):
     iron_wall_rate = Column(Integer, default=0)
     icon = Column(String(100))
 
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py，level_req → level_required）----
+    key = Column(String(32), unique=True, index=True)
+    effects = Column(Text, default="{}")
+
 
 class SeaUserWing(Base):
     __tablename__ = "sea_user_wings"
@@ -1874,6 +2149,11 @@ class SeaFollower(Base):
     talent_desc = Column(Text)
     icon = Column(String(100))
     description = Column(Text)
+
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py）----
+    key = Column(String(32), unique=True, index=True)
+    skill_name = Column(String(32))
+    skill_desc = Column(String(255))
 
 
 class SeaUserFollower(Base):
@@ -1910,6 +2190,12 @@ class SeaGem(Base):
     agi_bonus = Column(Integer, default=0)
     icon = Column(String(100))
 
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py）----
+    key = Column(String(32), unique=True, index=True)
+    effect = Column(String(64))
+    slots = Column(Text, default="[]")
+    tier = Column(Integer, default=1)
+
 
 class SeaUserGem(Base):
     __tablename__ = "sea_user_gems"
@@ -1938,6 +2224,13 @@ class SeaCard(Base):
     hp_bonus = Column(Integer, default=0)
     special_effect = Column(Text)
     icon = Column(String(100))
+
+    # ---- 3g_games 迁移字段（对齐 seed_sea_large.py）----
+    key = Column(String(32), unique=True, index=True)
+    slot = Column(String(32))
+    normal_effect = Column(String(64))
+    refine_effect = Column(String(64))
+    drop_source = Column(String(64), default="")
 
 
 class SeaUserCard(Base):
@@ -2424,3 +2717,336 @@ class SummonMasterApprentice(Base):
     graduated_at = Column(DateTime)
     taoli_reward_taken = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ==================== 二十五、风云三国模块 ====================
+
+class FengyunState(Base):
+    """风云三国玩家状态"""
+    __tablename__ = "fengyun_state"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    class_key = Column(String(16), default="warrior")  # warrior/assassin/warlock
+    faction = Column(String(4), default="shu")  # wei/shu/wu 魏/蜀/吴
+    level = Column(Integer, default=1)
+    exp = Column(Integer, default=0)
+    silver = Column(Integer, default=1000)  # 银两
+    honor = Column(Integer, default=0)  # 荣誉值
+    hp = Column(Integer, default=200)
+    mp = Column(Integer, default=100)
+    atk = Column(Integer, default=20)
+    defense = Column(Integer, default=10)
+    dodge = Column(Integer, default=5)
+    crit = Column(Integer, default=5)
+    current_city = Column(String(32), default="chengdu")
+    training_end_at = Column(DateTime, nullable=True)  # 演武结束时间
+
+
+class FengyunSkill(Base):
+    """技能字典（spec 技能系统：3 职业 × 4 类型）"""
+    __tablename__ = "fengyun_skills"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    class_key = Column(String(16))  # warrior/assassin/warlock
+    skill_type = Column(String(16))  # active/passive/auxiliary/status
+    unlock_level = Column(Integer, default=1)
+    cost_silver = Column(Integer, default=0)
+    cost_exp = Column(Integer, default=0)
+    effect = Column(String(255), default="")
+
+
+class FengyunUserSkill(Base):
+    """玩家已学技能"""
+    __tablename__ = "fengyun_user_skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    skill_key = Column(String(32))
+    level = Column(Integer, default=1)
+    __table_args__ = (UniqueConstraint("user_id", "skill_key", name="uq_fy_user_skill"),)
+
+
+class FengyunEquip(Base):
+    """装备字典（spec 装备系统：5 品质 × 7 部位）"""
+    __tablename__ = "fengyun_equips"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    quality = Column(String(16))  # 普通/精良/卓越/史诗/神器
+    slot = Column(String(16))  # 头/手/衣/腿/鞋/裤子/饰品
+    class_req = Column(String(16), default="")  # 限定职业，空=通用
+    level_req = Column(Integer, default=1)
+    atk_bonus = Column(Integer, default=0)
+    def_bonus = Column(Integer, default=0)
+    hp_bonus = Column(Integer, default=0)
+    price = Column(Integer, default=100)
+
+
+class FengyunUserEquip(Base):
+    """玩家装备实例"""
+    __tablename__ = "fengyun_user_equips"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    equip_key = Column(String(32))
+    slot = Column(String(16))
+    equipped = Column(Boolean, default=False)
+
+
+class FengyunDungeon(Base):
+    """副本定义（spec 副本系统：按阵营和等级划分）"""
+    __tablename__ = "fengyun_dungeons"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    faction = Column(String(16))  # wei/shu/wu/all
+    level_min = Column(Integer, default=16)
+    level_max = Column(Integer, default=25)
+    city = Column(String(32))  # 入口城市
+    npc = Column(String(32))  # 任务 NPC
+    reward_exp = Column(Integer, default=0)
+    reward_silver = Column(Integer, default=0)
+
+
+class FengyunLegion(Base):
+    """军团（spec 军团系统：5 级，最大 100 人）"""
+    __tablename__ = "fengyun_legions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(32), unique=True)
+    leader_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"))
+    level = Column(Integer, default=1)  # 1-5 级
+    contribution = Column(Integer, default=0)  # 军团贡献值
+    notice = Column(String(255), default="广纳天下英豪")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FengyunLegionMember(Base):
+    """军团成员"""
+    __tablename__ = "fengyun_legion_members"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    legion_id = Column(Integer, ForeignKey("fengyun_legions.id", ondelete="CASCADE"), index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True)
+    contribution = Column(Integer, default=0)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+
+
+class FengyunTitle(Base):
+    """称号字典（spec 称号系统：前缀+后缀组合）"""
+    __tablename__ = "fengyun_titles"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    title_type = Column(String(16))  # prefix 前缀 / suffix 后缀 / pair 配对
+    grade = Column(Integer, default=1)  # 称号品级
+    hp_bonus = Column(Integer, default=0)
+    atk_bonus = Column(Integer, default=0)
+    def_bonus = Column(Integer, default=0)
+
+
+class FengyunAchievement(Base):
+    """成就字典（spec 成就系统：3 难度 × 12 类型）"""
+    __tablename__ = "fengyun_achievements"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    difficulty = Column(String(8))  # 简单/中等/困难
+    category = Column(String(16))  # 成长/任务/杀怪/PK/山庄/社交/副将/道具/装备
+    desc = Column(String(128), default="")
+    hp_bonus = Column(Integer, default=0)
+    mp_bonus = Column(Integer, default=0)
+    atk_bonus = Column(Integer, default=0)
+    def_bonus = Column(Integer, default=0)
+    dodge_bonus = Column(Integer, default=0)
+    crit_bonus = Column(Integer, default=0)
+
+
+class FengyunCity(Base):
+    """城市字典（spec 游戏地图：魏蜀吴三区域城市）"""
+    __tablename__ = "fengyun_cities"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    faction = Column(String(16))  # wei/shu/wu/neutral
+    intro = Column(String(128), default="")
+
+
+class ItemFengyun(Base):
+    """风云三国物品字典（189 件：装备/系列/名器/BOSS凭证/虎符/消耗品）"""
+    __tablename__ = "fengyun_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="fengyun")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")
+
+
+# ==================== 幻想西游（v0.2.3 新增模块）====================
+class XyouState(Base):
+    """幻想西游玩家状态（spec：五门派/转职/200级/气血法力）"""
+    __tablename__ = "xyou_state"
+
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    sect_key = Column(String(16), default="")  # jiangjun/fangcun/longgong/yuegong/putuo 空=未转职
+    level = Column(Integer, default=1)
+    exp = Column(Integer, default=0)
+    silver = Column(Integer, default=1000)  # 银两
+    gold_bean = Column(Integer, default=0)  # 金豆（充值货币）
+    hp = Column(Integer, default=150)
+    mp = Column(Integer, default=80)
+    atk = Column(Integer, default=15)
+    defense = Column(Integer, default=10)
+    speed = Column(Integer, default=8)
+    lingli = Column(Integer, default=10)  # 灵力
+    shengwang = Column(Integer, default=0)  # 声望
+    current_scene = Column(String(32), default="xinshoucun")  # 当前场景
+    cultivate_end_at = Column(DateTime, nullable=True)  # 修炼结束时间
+    daily_counters = Column(Text, default="{}")  # JSON: 日常计数
+    auto_settings = Column(Text, default="{}")  # v0.2.3 JSON: 自动战斗/挂机设置
+
+
+class XyouSkill(Base):
+    """技能字典（spec：五门派技能系统）"""
+    __tablename__ = "xyou_skills"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    sect_key = Column(String(16))  # jiangjun/fangcun/longgong/yuegong/putuo
+    skill_type = Column(String(16))  # active/passive/auxiliary/seal
+    unlock_level = Column(Integer, default=1)
+    cost_silver = Column(Integer, default=0)
+    cost_mp = Column(Integer, default=0)  # 法力消耗
+    effect = Column(String(255), default="")
+
+
+class XyouUserSkill(Base):
+    """玩家已学技能"""
+    __tablename__ = "xyou_user_skills"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    skill_key = Column(String(32))
+    level = Column(Integer, default=1)  # 技能熟练度等级
+    __table_args__ = (UniqueConstraint("user_id", "skill_key", name="uq_xyou_user_skill"),)
+
+
+class XyouEquip(Base):
+    """装备字典（spec：武器/头盔/盔甲/靴子/戒指/手镯）"""
+    __tablename__ = "xyou_equips"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    quality = Column(String(16))  # 白/蓝/紫/金/神/圣
+    slot = Column(String(16))  # 武器/头盔/盔甲/靴子/戒指/手镯
+    sect_req = Column(String(16), default="")  # 限定门派，空=通用
+    level_req = Column(Integer, default=1)
+    atk_bonus = Column(Integer, default=0)
+    def_bonus = Column(Integer, default=0)
+    hp_bonus = Column(Integer, default=0)
+    mp_bonus = Column(Integer, default=0)
+    price = Column(Integer, default=100)
+
+
+class XyouUserEquip(Base):
+    """玩家装备实例"""
+    __tablename__ = "xyou_user_equips"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    equip_key = Column(String(32))
+    slot = Column(String(16))
+    worn = Column(Boolean, default=False)
+
+
+class XyouDungeon(Base):
+    """副本字典（spec：15-90级+ 副本，含普通/困难双难度）"""
+    __tablename__ = "xyou_dungeons"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    level_min = Column(Integer, default=1)
+    level_max = Column(Integer, default=200)
+    scene = Column(String(32))  # 入口场景
+    difficulty = Column(String(16), default="普通")  # 普通/困难
+    reward_exp = Column(Integer, default=0)
+    reward_silver = Column(Integer, default=0)
+    drop_quality = Column(String(16), default="白")
+
+
+class XyouPet(Base):
+    """宠物字典（spec：捕捉/8只/出战/经验20%）"""
+    __tablename__ = "xyou_pets"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    level_req = Column(Integer, default=1)  # 携带等级
+    base_hp = Column(Integer, default=100)
+    base_atk = Column(Integer, default=10)
+    base_def = Column(Integer, default=5)
+    skill = Column(String(64), default="")  # 天赋技能
+    capture_rate = Column(Float, default=0.3)  # 捕捉概率
+
+
+class XyouUserPet(Base):
+    """玩家宠物实例"""
+    __tablename__ = "xyou_user_pets"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    pet_key = Column(String(32))
+    nickname = Column(String(32), default="")
+    level = Column(Integer, default=1)
+    exp = Column(Integer, default=0)
+    loyalty = Column(Integer, default=80)  # 忠诚度
+    in_battle = Column(Boolean, default=False)  # 是否出战
+
+
+class XyouScene(Base):
+    """场景字典（spec：世界地图区域）"""
+    __tablename__ = "xyou_scenes"
+
+    key = Column(String(32), primary_key=True)
+    name = Column(String(32))
+    region = Column(String(16))  # 新手/长安/宝象/乌鸡/傲来/天宫/地府/蓬莱/灵山
+    level_min = Column(Integer, default=1)
+    intro = Column(String(128), default="")
+    exits = Column(Text, default="[]")  # JSON: 出口场景key列表
+
+
+class XyouMaterial(Base):
+    """高级升级材料字典（v0.2.3 全网检索补全）"""
+    __tablename__ = "xyou_materials"
+
+    key = Column(String(48), primary_key=True)
+    name = Column(String(32))
+    purpose = Column(String(128), default="")  # 用途
+    source = Column(String(128), default="")  # 获取方式
+
+
+class XyouCoord(Base):
+    """长安城/区域坐标字典（v0.2.3 spec 参数补全）"""
+    __tablename__ = "xyou_coords"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    scene_key = Column(String(32), default="changan")  # 所属场景
+    place = Column(String(32))  # 地点名
+    coord = Column(String(64), default="")  # 坐标/位置
+    npc_or_func = Column(String(128), default="")  # NPC/功能
+
+
+class ItemXyou(Base):
+    """幻想西游物品字典（装备/药品/材料等，module_key=xyou）"""
+    __tablename__ = "xyou_items"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    key = Column(String(64), unique=True, index=True)
+    name = Column(String(32))
+    type = Column(String(16))
+    module_key = Column(String(32), default="xyou")
+    sell_price = Column(Integer, default=0)
+    description = Column(String(128), default="")

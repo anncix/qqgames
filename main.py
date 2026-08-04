@@ -16,14 +16,19 @@ from models.models import (
     SummonSpirit, SummonUserSpirit, SummonArenaMatch,
     SummonBattlefield, SummonBattlefieldRecord,
     SummonAlliance, SummonAllianceMember, SummonAllianceDonationLog,
-    SummonMasterApprentice
+    SummonMasterApprentice,
+    FengyunState, FengyunSkill, FengyunUserSkill, FengyunEquip, FengyunUserEquip,
+    FengyunDungeon, FengyunLegion, FengyunLegionMember, FengyunTitle,
+    FengyunAchievement, FengyunCity, ItemFengyun,
+    XyouState, XyouSkill, XyouUserSkill, XyouEquip, XyouUserEquip,
+    XyouDungeon, XyouPet, XyouUserPet, XyouScene, XyouMaterial, XyouCoord, ItemXyou
 )
 from utils.auth import get_current_user, get_password_hash
-from routers import auth, home, jingwutang, magic_garden, sunny_farm, delicious_town, zongheng_sihai, admin, summon_king
+from routers import auth, home, jingwutang, magic_garden, sunny_farm, delicious_town, zongheng_sihai, admin, summon_king, fengyun, xyou
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="QQ家园", version="3.0")
+app = FastAPI(title="QQ家园", version="0.3.2")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth.router)
@@ -35,6 +40,8 @@ app.include_router(delicious_town.router)
 app.include_router(zongheng_sihai.router)
 app.include_router(admin.router)
 app.include_router(summon_king.router)
+app.include_router(fengyun.router)
+app.include_router(xyou.router)
 
 
 def init_default_data(db: Session):
@@ -397,7 +404,34 @@ async def startup_event():
     # 初始化精武堂基础数据（技能、等级配置、装备模板、头衔等）
     from utils.jingwutang import init_jingwu_data
     init_jingwu_data(db)
-    
+
+    # 魔法花园完整数据（520作物/1024材料/1536配方/3072订单，幂等）
+    from seed.seeds_garden import seed_garden_large
+    seed_garden_large(db)
+
+    # 纵横四海完整数据（20城市/24套装/60宝石/21卡片/40圣痕/60宠物/12坐骑/8羽翼/
+    # 9随从/10副本/14船只/12主线/23技能/34特产/79装备/136物品词典，幂等）
+    from seed.seeds_sea import seed_sea_full
+    seed_sea_full(db)
+
+    # 阳光牧场完整数据（50作物/100物品字典，幂等）
+    from seed.seeds_farm import seed_farm_full
+    seed_farm_full(db)
+
+    # 美味小镇完整数据（222食材物品字典，幂等）
+    from seed.seeds_town import seed_town_full
+    seed_town_full(db)
+
+    # 风云三国完整数据（13城市/30技能/105装备/48系列/11名器/14BOSS/
+    # 13副本/15称号/21成就/189物品字典，幂等）
+    from seed.seeds_fengyun import seed_fengyun_full
+    seed_fengyun_full(db)
+
+    # 幻想西游完整数据（10场景/45技能/108装备/8龙宫叉/22副本/13宠物/
+    # 14药品/14扩展药品/19高级材料/12坐标，幂等）
+    from seed.seeds_xyou import seed_xyou_full
+    seed_xyou_full(db)
+
     admin_user = db.query(User).filter(User.username == "admin").first()
     if not admin_user:
         admin = User(

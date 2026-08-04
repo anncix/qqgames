@@ -30,267 +30,546 @@ templates = Jinja2Templates(directory="templates")
 
 def init_summon_data(db: Session):
     """初始化召唤之王基础数据"""
-    # 确保表存在
-    Base.metadata.create_all(bind=engine)
+    try:
+        # 确保表存在
+        Base.metadata.create_all(bind=engine)
 
-    # --- 地图 ---
-    maps_data = [
-        {"map_code": "newbie_village", "name": "新手村", "level_min": 1, "level_max": 10,
-         "beast_pool_json": json.dumps(["slime", "rabbit", "cat"]),
-         "drop_json": json.dumps({"copper": (10, 30), "ball_normal": (0, 1)}),
-         "description": "宁静祥和的小村庄，适合新手召唤师历练。", "vitality_cost": 1},
-        {"map_code": "qingfeng_forest", "name": "清风森林", "level_min": 10, "level_max": 20,
-         "beast_pool_json": json.dumps(["wolf", "sparrow", "bear"]),
-         "drop_json": json.dumps({"copper": (30, 80), "ball_normal": (0, 2), "ball_strong": (0, 1)}),
-         "description": "茂密的森林，栖息着各种野兽幻兽。", "vitality_cost": 2},
-        {"map_code": "flame_canyon", "name": "烈焰峡谷", "level_min": 20, "level_max": 40,
-         "beast_pool_json": json.dumps(["fire_dragon", "flame_bird", "lava_beast"]),
-         "drop_json": json.dumps({"copper": (80, 200), "ball_strong": (0, 2), "bone_blue": (0, 1)}),
-         "description": "炙热的峡谷，火属性幻兽的领地。", "vitality_cost": 3},
-        {"map_code": "nether_abyss", "name": "幽冥深渊", "level_min": 40, "level_max": 100,
-         "beast_pool_json": json.dumps(["ghost", "shadow_dragon", "demon_king"]),
-         "drop_json": json.dumps({"copper": (200, 500), "ball_super": (0, 1), "bone_purple": (0, 1)}),
-         "description": "阴森恐怖的深渊，传说中魔王的居所。", "vitality_cost": 5},
-    ]
-    for m in maps_data:
-        existing = db.query(SummonMap).filter(SummonMap.map_code == m["map_code"]).first()
-        if not existing:
-            db.add(SummonMap(**m))
+        # --- 地图 ---
+        maps_data = [
+            {"map_code": "newbie_village", "name": "新手村", "level_min": 1, "level_max": 10,
+             "beast_pool_json": json.dumps(["slime", "rabbit", "cat"]),
+             "drop_json": json.dumps({"copper": (10, 30), "ball_normal": (0, 1)}),
+             "description": "宁静祥和的小村庄，适合新手召唤师历练。", "vitality_cost": 1},
+            {"map_code": "qingfeng_forest", "name": "清风森林", "level_min": 10, "level_max": 20,
+             "beast_pool_json": json.dumps(["wolf", "sparrow", "bear"]),
+             "drop_json": json.dumps({"copper": (30, 80), "ball_normal": (0, 2), "ball_strong": (0, 1)}),
+             "description": "茂密的森林，栖息着各种野兽幻兽。", "vitality_cost": 2},
+            {"map_code": "flame_canyon", "name": "烈焰峡谷", "level_min": 20, "level_max": 40,
+             "beast_pool_json": json.dumps(["fire_dragon", "flame_bird", "lava_beast"]),
+             "drop_json": json.dumps({"copper": (80, 200), "ball_strong": (0, 2), "bone_blue": (0, 1)}),
+             "description": "炙热的峡谷，火属性幻兽的领地。", "vitality_cost": 3},
+            {"map_code": "nether_abyss", "name": "幽冥深渊", "level_min": 40, "level_max": 100,
+             "beast_pool_json": json.dumps(["ghost", "shadow_dragon", "demon_king"]),
+             "drop_json": json.dumps({"copper": (200, 500), "ball_super": (0, 1), "bone_purple": (0, 1)}),
+             "description": "阴森恐怖的深渊，传说中魔王的居所。", "vitality_cost": 5},
+        ]
+        for m in maps_data:
+            existing = db.query(SummonMap).filter(SummonMap.map_code == m["map_code"]).first()
+            if not existing:
+                db.add(SummonMap(**m))
 
-    # --- 幻兽 ---
-    beasts_data = [
-        {"beast_code": "slime", "name": "史莱姆", "race_type": "slime", "map_level_min": 1,
-         "rarity": "common", "base_hp": 80, "base_patk": 10, "base_matk": 8,
-         "base_pdef": 8, "base_mdef": 8, "base_speed": 5, "growth_min": 1, "growth_max": 3,
-         "skill_pool_json": json.dumps(["tackle"]),
-         "personality_pool_json": json.dumps(["calm", "brave"]),
-         "icon": "🟢", "description": "最常见的软体幻兽，新手练习捕捉的最佳对象。", "catch_rate": 80},
-        {"beast_code": "rabbit", "name": "月光兔", "race_type": "beast", "map_level_min": 1,
-         "rarity": "common", "base_hp": 70, "base_patk": 12, "base_matk": 15,
-         "base_pdef": 6, "base_mdef": 10, "base_speed": 18, "growth_min": 1, "growth_max": 3,
-         "skill_pool_json": json.dumps(["tackle", "quick_attack"]),
-         "personality_pool_json": json.dumps(["timid", "cheerful"]),
-         "icon": "🐰", "description": "速度极快的小兔子，月光下能力增强。", "catch_rate": 70},
-        {"beast_code": "cat", "name": "灵猫", "race_type": "beast", "map_level_min": 1,
-         "rarity": "uncommon", "base_hp": 75, "base_patk": 18, "base_matk": 12,
-         "base_pdef": 8, "base_mdef": 8, "base_speed": 16, "growth_min": 2, "growth_max": 4,
-         "skill_pool_json": json.dumps(["scratch", "quick_attack"]),
-         "personality_pool_json": json.dumps(["proud", "cunning"]),
-         "icon": "🐱", "description": "敏捷的灵猫，攻击力不俗。", "catch_rate": 60},
-        {"beast_code": "wolf", "name": "苍狼", "race_type": "beast", "map_level_min": 10,
-         "rarity": "uncommon", "base_hp": 120, "base_patk": 25, "base_matk": 10,
-         "base_pdef": 15, "base_mdef": 10, "base_speed": 14, "growth_min": 2, "growth_max": 4,
-         "skill_pool_json": json.dumps(["bite", "howl"]),
-         "personality_pool_json": json.dumps(["brave", "fierce"]),
-         "icon": "🐺", "description": "森林中的猎手，物理攻击强大。", "catch_rate": 50},
-        {"beast_code": "sparrow", "name": "风雀", "race_type": "flying", "map_level_min": 10,
-         "rarity": "common", "base_hp": 90, "base_patk": 15, "base_matk": 22,
-         "base_pdef": 8, "base_mdef": 15, "base_speed": 22, "growth_min": 2, "growth_max": 4,
-         "skill_pool_json": json.dumps(["wind_blade", "quick_attack"]),
-         "personality_pool_json": json.dumps(["cheerful", "timid"]),
-         "icon": "🐦", "description": "御风而行的小鸟，魔攻与速度出色。", "catch_rate": 55},
-        {"beast_code": "bear", "name": "棕熊王", "race_type": "beast", "map_level_min": 15,
-         "rarity": "rare", "base_hp": 200, "base_patk": 35, "base_matk": 10,
-         "base_pdef": 25, "base_mdef": 15, "base_speed": 6, "growth_min": 3, "growth_max": 5,
-         "skill_pool_json": json.dumps(["heavy_slam", "roar"]),
-         "personality_pool_json": json.dumps(["brave", "stubborn"]),
-         "icon": "🐻", "description": "森林中的霸主，血量和物理防御极高。", "catch_rate": 30},
-        {"beast_code": "fire_dragon", "name": "炎龙幼崽", "race_type": "dragon", "map_level_min": 20,
-         "rarity": "rare", "base_hp": 180, "base_patk": 30, "base_matk": 40,
-         "base_pdef": 20, "base_mdef": 18, "base_speed": 12, "growth_min": 3, "growth_max": 5,
-         "skill_pool_json": json.dumps(["fire_breath", "bite"]),
-         "personality_pool_json": json.dumps(["proud", "fierce"]),
-         "icon": "🐉", "description": "火龙的幼崽，火属性魔攻极强。", "catch_rate": 20},
-        {"beast_code": "flame_bird", "name": "烈焰鸟", "race_type": "flying", "map_level_min": 25,
-         "rarity": "epic", "base_hp": 160, "base_patk": 25, "base_matk": 50,
-         "base_pdef": 15, "base_mdef": 22, "base_speed": 25, "growth_min": 3, "growth_max": 5,
-         "skill_pool_json": json.dumps(["fire_breath", "wind_blade", "rebirth"]),
-         "personality_pool_json": json.dumps(["proud", "brave"]),
-         "icon": "🔥", "description": "传说中的不死鸟，浴火重生。", "catch_rate": 10},
-        {"beast_code": "lava_beast", "name": "熔岩兽", "race_type": "elemental", "map_level_min": 30,
-         "rarity": "rare", "base_hp": 220, "base_patk": 40, "base_matk": 25,
-         "base_pdef": 30, "base_mdef": 20, "base_speed": 5, "growth_min": 3, "growth_max": 5,
-         "skill_pool_json": json.dumps(["heavy_slam", "fire_breath"]),
-         "personality_pool_json": json.dumps(["stubborn", "fierce"]),
-         "icon": "🌋", "description": "由熔岩构成的巨兽，防御惊人。", "catch_rate": 15},
-        {"beast_code": "ghost", "name": "幽灵", "race_type": "undead", "map_level_min": 40,
-         "rarity": "rare", "base_hp": 150, "base_patk": 20, "base_matk": 55,
-         "base_pdef": 10, "base_mdef": 35, "base_speed": 20, "growth_min": 3, "growth_max": 5,
-         "skill_pool_json": json.dumps(["shadow_bolt", "curse"]),
-         "personality_pool_json": json.dumps(["cunning", "cold"]),
-         "icon": "👻", "description": "飘忽不定的幽灵，魔攻与魔防极高。", "catch_rate": 12},
-        {"beast_code": "shadow_dragon", "name": "暗影龙", "race_type": "dragon", "map_level_min": 45,
-         "rarity": "legendary", "base_hp": 280, "base_patk": 50, "base_matk": 60,
-         "base_pdef": 35, "base_mdef": 30, "base_speed": 18, "growth_min": 4, "growth_max": 5,
-         "skill_pool_json": json.dumps(["shadow_bolt", "bite", "dragon_rage"]),
-         "personality_pool_json": json.dumps(["proud", "cold", "fierce"]),
-         "icon": "🐲", "description": "深渊中的暗影巨龙，全属性优秀。", "catch_rate": 5},
-        {"beast_code": "demon_king", "name": "深渊魔王", "race_type": "demon", "map_level_min": 50,
-         "rarity": "legendary", "base_hp": 350, "base_patk": 60, "base_matk": 70,
-         "base_pdef": 40, "base_mdef": 40, "base_speed": 15, "growth_min": 5, "growth_max": 5,
-         "skill_pool_json": json.dumps(["shadow_bolt", "curse", "dragon_rage", "rebirth"]),
-         "personality_pool_json": json.dumps(["fierce", "proud", "cold"]),
-         "icon": "👹", "description": "深渊的统治者，最强幻兽之一。", "catch_rate": 3},
-    ]
-    for b in beasts_data:
-        existing = db.query(SummonBeast).filter(SummonBeast.beast_code == b["beast_code"]).first()
-        if not existing:
-            db.add(SummonBeast(**b))
+        # --- 幻兽 ---
+        beasts_data = [
+            {"beast_code": "slime", "name": "史莱姆", "race_type": "slime", "map_level_min": 1,
+             "rarity": "common", "base_hp": 80, "base_patk": 10, "base_matk": 8,
+             "base_pdef": 8, "base_mdef": 8, "base_speed": 5, "growth_min": 1, "growth_max": 3,
+             "skill_pool_json": json.dumps(["tackle"]),
+             "personality_pool_json": json.dumps(["calm", "brave"]),
+             "icon": "🟢", "description": "最常见的软体幻兽，新手练习捕捉的最佳对象。", "catch_rate": 80},
+            {"beast_code": "rabbit", "name": "月光兔", "race_type": "beast", "map_level_min": 1,
+             "rarity": "common", "base_hp": 70, "base_patk": 12, "base_matk": 15,
+             "base_pdef": 6, "base_mdef": 10, "base_speed": 18, "growth_min": 1, "growth_max": 3,
+             "skill_pool_json": json.dumps(["tackle", "quick_attack"]),
+             "personality_pool_json": json.dumps(["timid", "cheerful"]),
+             "icon": "🐰", "description": "速度极快的小兔子，月光下能力增强。", "catch_rate": 70},
+            {"beast_code": "cat", "name": "灵猫", "race_type": "beast", "map_level_min": 1,
+             "rarity": "uncommon", "base_hp": 75, "base_patk": 18, "base_matk": 12,
+             "base_pdef": 8, "base_mdef": 8, "base_speed": 16, "growth_min": 2, "growth_max": 4,
+             "skill_pool_json": json.dumps(["scratch", "quick_attack"]),
+             "personality_pool_json": json.dumps(["proud", "cunning"]),
+             "icon": "🐱", "description": "敏捷的灵猫，攻击力不俗。", "catch_rate": 60},
+            {"beast_code": "wolf", "name": "苍狼", "race_type": "beast", "map_level_min": 10,
+             "rarity": "uncommon", "base_hp": 120, "base_patk": 25, "base_matk": 10,
+             "base_pdef": 15, "base_mdef": 10, "base_speed": 14, "growth_min": 2, "growth_max": 4,
+             "skill_pool_json": json.dumps(["bite", "howl"]),
+             "personality_pool_json": json.dumps(["brave", "fierce"]),
+             "icon": "🐺", "description": "森林中的猎手，物理攻击强大。", "catch_rate": 50},
+            {"beast_code": "sparrow", "name": "风雀", "race_type": "flying", "map_level_min": 10,
+             "rarity": "common", "base_hp": 90, "base_patk": 15, "base_matk": 22,
+             "base_pdef": 8, "base_mdef": 15, "base_speed": 22, "growth_min": 2, "growth_max": 4,
+             "skill_pool_json": json.dumps(["wind_blade", "quick_attack"]),
+             "personality_pool_json": json.dumps(["cheerful", "timid"]),
+             "icon": "🐦", "description": "御风而行的小鸟，魔攻与速度出色。", "catch_rate": 55},
+            {"beast_code": "bear", "name": "棕熊王", "race_type": "beast", "map_level_min": 15,
+             "rarity": "rare", "base_hp": 200, "base_patk": 35, "base_matk": 10,
+             "base_pdef": 25, "base_mdef": 15, "base_speed": 6, "growth_min": 3, "growth_max": 5,
+             "skill_pool_json": json.dumps(["heavy_slam", "roar"]),
+             "personality_pool_json": json.dumps(["brave", "stubborn"]),
+             "icon": "🐻", "description": "森林中的霸主，血量和物理防御极高。", "catch_rate": 30},
+            {"beast_code": "fire_dragon", "name": "炎龙幼崽", "race_type": "dragon", "map_level_min": 20,
+             "rarity": "rare", "base_hp": 180, "base_patk": 30, "base_matk": 40,
+             "base_pdef": 20, "base_mdef": 18, "base_speed": 12, "growth_min": 3, "growth_max": 5,
+             "skill_pool_json": json.dumps(["fire_breath", "bite"]),
+             "personality_pool_json": json.dumps(["proud", "fierce"]),
+             "icon": "🐉", "description": "火龙的幼崽，火属性魔攻极强。", "catch_rate": 20},
+            {"beast_code": "flame_bird", "name": "烈焰鸟", "race_type": "flying", "map_level_min": 25,
+             "rarity": "epic", "base_hp": 160, "base_patk": 25, "base_matk": 50,
+             "base_pdef": 15, "base_mdef": 22, "base_speed": 25, "growth_min": 3, "growth_max": 5,
+             "skill_pool_json": json.dumps(["fire_breath", "wind_blade", "rebirth"]),
+             "personality_pool_json": json.dumps(["proud", "brave"]),
+             "icon": "🔥", "description": "传说中的不死鸟，浴火重生。", "catch_rate": 10},
+            {"beast_code": "lava_beast", "name": "熔岩兽", "race_type": "elemental", "map_level_min": 30,
+             "rarity": "rare", "base_hp": 220, "base_patk": 40, "base_matk": 25,
+             "base_pdef": 30, "base_mdef": 20, "base_speed": 5, "growth_min": 3, "growth_max": 5,
+             "skill_pool_json": json.dumps(["heavy_slam", "fire_breath"]),
+             "personality_pool_json": json.dumps(["stubborn", "fierce"]),
+             "icon": "🌋", "description": "由熔岩构成的巨兽，防御惊人。", "catch_rate": 15},
+            {"beast_code": "ghost", "name": "幽灵", "race_type": "undead", "map_level_min": 40,
+             "rarity": "rare", "base_hp": 150, "base_patk": 20, "base_matk": 55,
+             "base_pdef": 10, "base_mdef": 35, "base_speed": 20, "growth_min": 3, "growth_max": 5,
+             "skill_pool_json": json.dumps(["shadow_bolt", "curse"]),
+             "personality_pool_json": json.dumps(["cunning", "cold"]),
+             "icon": "👻", "description": "飘忽不定的幽灵，魔攻与魔防极高。", "catch_rate": 12},
+            {"beast_code": "shadow_dragon", "name": "暗影龙", "race_type": "dragon", "map_level_min": 45,
+             "rarity": "legendary", "base_hp": 280, "base_patk": 50, "base_matk": 60,
+             "base_pdef": 35, "base_mdef": 30, "base_speed": 18, "growth_min": 4, "growth_max": 5,
+             "skill_pool_json": json.dumps(["shadow_bolt", "bite", "dragon_rage"]),
+             "personality_pool_json": json.dumps(["proud", "cold", "fierce"]),
+             "icon": "🐲", "description": "深渊中的暗影巨龙，全属性优秀。", "catch_rate": 5},
+            {"beast_code": "demon_king", "name": "深渊魔王", "race_type": "demon", "map_level_min": 50,
+             "rarity": "legendary", "base_hp": 350, "base_patk": 60, "base_matk": 70,
+             "base_pdef": 40, "base_mdef": 40, "base_speed": 15, "growth_min": 5, "growth_max": 5,
+             "skill_pool_json": json.dumps(["shadow_bolt", "curse", "dragon_rage", "rebirth"]),
+             "personality_pool_json": json.dumps(["fierce", "proud", "cold"]),
+             "icon": "👹", "description": "深渊的统治者，最强幻兽之一。", "catch_rate": 3},
+        ]
+        for b in beasts_data:
+            existing = db.query(SummonBeast).filter(SummonBeast.beast_code == b["beast_code"]).first()
+            if not existing:
+                db.add(SummonBeast(**b))
 
-    # --- 技能 ---
-    skills_data = [
-        {"skill_code": "tackle", "name": "撞击", "skill_type": "active", "category": "patk",
-         "damage_formula": "patk*1.0", "base_damage": 10, "trigger_rate": 100, "mp_cost": 0,
-         "cooldown": 0, "description": "用身体撞击敌人，造成物理伤害。", "icon": "💥"},
-        {"skill_code": "scratch", "name": "抓击", "skill_type": "active", "category": "patk",
-         "damage_formula": "patk*1.2", "base_damage": 15, "trigger_rate": 100, "mp_cost": 5,
-         "cooldown": 1, "description": "用利爪抓挠敌人，造成较高物理伤害。", "icon": "🐾"},
-        {"skill_code": "quick_attack", "name": "电光石火", "skill_type": "active", "category": "patk",
-         "damage_formula": "patk*0.8+speed*0.5", "base_damage": 8, "trigger_rate": 100, "mp_cost": 5,
-         "cooldown": 2, "description": "以极快速度攻击，必定先出手。", "icon": "⚡"},
-        {"skill_code": "bite", "name": "撕咬", "skill_type": "active", "category": "patk",
-         "damage_formula": "patk*1.5", "base_damage": 20, "trigger_rate": 100, "mp_cost": 10,
-         "cooldown": 2, "description": "用尖牙撕咬敌人，造成高额物理伤害。", "icon": "🦷"},
-        {"skill_code": "wind_blade", "name": "风刃", "skill_type": "active", "category": "matk",
-         "damage_formula": "matk*1.3", "base_damage": 18, "trigger_rate": 100, "mp_cost": 8,
-         "cooldown": 1, "description": "凝聚风之刃攻击敌人，造成魔法伤害。", "icon": "🌪️"},
-        {"skill_code": "fire_breath", "name": "火焰吐息", "skill_type": "active", "category": "matk",
-         "damage_formula": "matk*1.6", "base_damage": 25, "trigger_rate": 100, "mp_cost": 15,
-         "cooldown": 2, "description": "喷出烈焰灼烧敌人，火属性魔法伤害。", "icon": "🔥"},
-        {"skill_code": "heavy_slam", "name": "重击", "skill_type": "active", "category": "patk",
-         "damage_formula": "patk*1.8+hp*0.1", "base_damage": 30, "trigger_rate": 100, "mp_cost": 15,
-         "cooldown": 3, "description": "以全身重量砸向敌人，威力巨大但速度慢。", "icon": "🔨"},
-        {"skill_code": "shadow_bolt", "name": "暗影箭", "skill_type": "active", "category": "matk",
-         "damage_formula": "matk*1.7", "base_damage": 28, "trigger_rate": 100, "mp_cost": 12,
-         "cooldown": 2, "description": "发射暗影能量攻击敌人，暗属性魔法伤害。", "icon": "🌑"},
-        {"skill_code": "howl", "name": "嚎叫", "skill_type": "passive", "category": "buff",
-         "damage_formula": "", "base_damage": 0, "trigger_rate": 30, "mp_cost": 0,
-         "cooldown": 0, "description": "战斗开始时嚎叫，提升己方物攻20%。", "icon": "📢"},
-        {"skill_code": "roar", "name": "怒吼", "skill_type": "passive", "category": "debuff",
-         "damage_formula": "", "base_damage": 0, "trigger_rate": 25, "mp_cost": 0,
-         "cooldown": 0, "description": "怒吼威慑敌人，降低敌方物防20%。", "icon": "🔊"},
-        {"skill_code": "curse", "name": "诅咒", "skill_type": "active", "category": "matk",
-         "damage_formula": "matk*0.5", "base_damage": 10, "trigger_rate": 100, "mp_cost": 20,
-         "cooldown": 4, "description": "诅咒敌人，每回合损失最大HP的10%，持续3回合。", "icon": "💀"},
-        {"skill_code": "rebirth", "name": "浴火重生", "skill_type": "passive", "category": "heal",
-         "damage_formula": "", "base_damage": 0, "trigger_rate": 100, "mp_cost": 0,
-         "cooldown": 0, "description": "HP归零时以50%HP复活一次，每场战斗仅触发一次。", "icon": "🔄"},
-        {"skill_code": "dragon_rage", "name": "龙之怒", "skill_type": "active", "category": "matk",
-         "damage_formula": "matk*2.5", "base_damage": 50, "trigger_rate": 100, "mp_cost": 30,
-         "cooldown": 5, "description": "龙族奥义，对敌人造成毁灭性魔法伤害。", "icon": "🐉"},
-    ]
-    for s in skills_data:
-        existing = db.query(SummonSkill).filter(SummonSkill.skill_code == s["skill_code"]).first()
-        if not existing:
-            db.add(SummonSkill(**s))
+        # --- 技能 ---
+        skills_data = [
+            {"skill_code": "tackle", "name": "撞击", "skill_type": "active", "category": "patk",
+             "damage_formula": "patk*1.0", "base_damage": 10, "trigger_rate": 100, "mp_cost": 0,
+             "cooldown": 0, "description": "用身体撞击敌人，造成物理伤害。", "icon": "💥"},
+            {"skill_code": "scratch", "name": "抓击", "skill_type": "active", "category": "patk",
+             "damage_formula": "patk*1.2", "base_damage": 15, "trigger_rate": 100, "mp_cost": 5,
+             "cooldown": 1, "description": "用利爪抓挠敌人，造成较高物理伤害。", "icon": "🐾"},
+            {"skill_code": "quick_attack", "name": "电光石火", "skill_type": "active", "category": "patk",
+             "damage_formula": "patk*0.8+speed*0.5", "base_damage": 8, "trigger_rate": 100, "mp_cost": 5,
+             "cooldown": 2, "description": "以极快速度攻击，必定先出手。", "icon": "⚡"},
+            {"skill_code": "bite", "name": "撕咬", "skill_type": "active", "category": "patk",
+             "damage_formula": "patk*1.5", "base_damage": 20, "trigger_rate": 100, "mp_cost": 10,
+             "cooldown": 2, "description": "用尖牙撕咬敌人，造成高额物理伤害。", "icon": "🦷"},
+            {"skill_code": "wind_blade", "name": "风刃", "skill_type": "active", "category": "matk",
+             "damage_formula": "matk*1.3", "base_damage": 18, "trigger_rate": 100, "mp_cost": 8,
+             "cooldown": 1, "description": "凝聚风之刃攻击敌人，造成魔法伤害。", "icon": "🌪️"},
+            {"skill_code": "fire_breath", "name": "火焰吐息", "skill_type": "active", "category": "matk",
+             "damage_formula": "matk*1.6", "base_damage": 25, "trigger_rate": 100, "mp_cost": 15,
+             "cooldown": 2, "description": "喷出烈焰灼烧敌人，火属性魔法伤害。", "icon": "🔥"},
+            {"skill_code": "heavy_slam", "name": "重击", "skill_type": "active", "category": "patk",
+             "damage_formula": "patk*1.8+hp*0.1", "base_damage": 30, "trigger_rate": 100, "mp_cost": 15,
+             "cooldown": 3, "description": "以全身重量砸向敌人，威力巨大但速度慢。", "icon": "🔨"},
+            {"skill_code": "shadow_bolt", "name": "暗影箭", "skill_type": "active", "category": "matk",
+             "damage_formula": "matk*1.7", "base_damage": 28, "trigger_rate": 100, "mp_cost": 12,
+             "cooldown": 2, "description": "发射暗影能量攻击敌人，暗属性魔法伤害。", "icon": "🌑"},
+            {"skill_code": "howl", "name": "嚎叫", "skill_type": "passive", "category": "buff",
+             "damage_formula": "", "base_damage": 0, "trigger_rate": 30, "mp_cost": 0,
+             "cooldown": 0, "description": "战斗开始时嚎叫，提升己方物攻20%。", "icon": "📢"},
+            {"skill_code": "roar", "name": "怒吼", "skill_type": "passive", "category": "debuff",
+             "damage_formula": "", "base_damage": 0, "trigger_rate": 25, "mp_cost": 0,
+             "cooldown": 0, "description": "怒吼威慑敌人，降低敌方物防20%。", "icon": "🔊"},
+            {"skill_code": "curse", "name": "诅咒", "skill_type": "active", "category": "matk",
+             "damage_formula": "matk*0.5", "base_damage": 10, "trigger_rate": 100, "mp_cost": 20,
+             "cooldown": 4, "description": "诅咒敌人，每回合损失最大HP的10%，持续3回合。", "icon": "💀"},
+            {"skill_code": "rebirth", "name": "浴火重生", "skill_type": "passive", "category": "heal",
+             "damage_formula": "", "base_damage": 0, "trigger_rate": 100, "mp_cost": 0,
+             "cooldown": 0, "description": "HP归零时以50%HP复活一次，每场战斗仅触发一次。", "icon": "🔄"},
+            {"skill_code": "dragon_rage", "name": "龙之怒", "skill_type": "active", "category": "matk",
+             "damage_formula": "matk*2.5", "base_damage": 50, "trigger_rate": 100, "mp_cost": 30,
+             "cooldown": 5, "description": "龙族奥义，对敌人造成毁灭性魔法伤害。", "icon": "🐉"},
+        ]
+        for s in skills_data:
+            existing = db.query(SummonSkill).filter(SummonSkill.skill_code == s["skill_code"]).first()
+            if not existing:
+                db.add(SummonSkill(**s))
 
-    # --- 战骨 ---
-    bones_data = [
-        {"bone_code": "skull_common", "name": "兽骨头骨", "slot_type": "skull", "quality": "common",
-         "level_required": 1, "hp_bonus": 20, "patk_bonus": 0, "matk_bonus": 5,
-         "pdef_bonus": 5, "mdef_bonus": 5, "speed_bonus": 0, "icon": "💀"},
-        {"bone_code": "sternum_common", "name": "兽骨胸骨", "slot_type": "sternum", "quality": "common",
-         "level_required": 1, "hp_bonus": 40, "patk_bonus": 0, "matk_bonus": 0,
-         "pdef_bonus": 10, "mdef_bonus": 10, "speed_bonus": 0, "icon": "🦴"},
-        {"bone_code": "arm_bone_common", "name": "兽骨臂骨", "slot_type": "arm", "quality": "common",
-         "level_required": 1, "hp_bonus": 10, "patk_bonus": 8, "matk_bonus": 0,
-         "pdef_bonus": 5, "mdef_bonus": 0, "speed_bonus": 0, "icon": "🦴"},
-        {"bone_code": "leg_bone_common", "name": "兽骨腿骨", "slot_type": "leg", "quality": "common",
-         "level_required": 1, "hp_bonus": 15, "patk_bonus": 0, "matk_bonus": 0,
-         "pdef_bonus": 8, "mdef_bonus": 5, "speed_bonus": 5, "icon": "🦴"},
-        {"bone_code": "hand_bone_common", "name": "兽骨手骨", "slot_type": "hand", "quality": "common",
-         "level_required": 1, "hp_bonus": 5, "patk_bonus": 5, "matk_bonus": 5,
-         "pdef_bonus": 0, "mdef_bonus": 0, "speed_bonus": 3, "icon": "🦴"},
-        {"bone_code": "tail_bone_common", "name": "兽骨尾骨", "slot_type": "tail", "quality": "common",
-         "level_required": 1, "hp_bonus": 10, "patk_bonus": 3, "matk_bonus": 3,
-         "pdef_bonus": 3, "mdef_bonus": 3, "speed_bonus": 2, "icon": "🦴"},
-        {"bone_code": "soul_core_common", "name": "兽魂元魂", "slot_type": "soul_core", "quality": "common",
-         "level_required": 1, "hp_bonus": 30, "patk_bonus": 5, "matk_bonus": 5,
-         "pdef_bonus": 5, "mdef_bonus": 5, "speed_bonus": 2, "icon": "🔮"},
-        {"bone_code": "skull_rare", "name": "精钢头骨", "slot_type": "skull", "quality": "rare",
-         "level_required": 20, "hp_bonus": 50, "patk_bonus": 0, "matk_bonus": 15,
-         "pdef_bonus": 15, "mdef_bonus": 15, "speed_bonus": 0, "icon": "💀"},
-        {"bone_code": "sternum_rare", "name": "精钢胸骨", "slot_type": "sternum", "quality": "rare",
-         "level_required": 20, "hp_bonus": 100, "patk_bonus": 0, "matk_bonus": 0,
-         "pdef_bonus": 25, "mdef_bonus": 25, "speed_bonus": 0, "icon": "🦴"},
-        {"bone_code": "skull_epic", "name": "龙魂头骨", "slot_type": "skull", "quality": "epic",
-         "level_required": 40, "hp_bonus": 120, "patk_bonus": 0, "matk_bonus": 40,
-         "pdef_bonus": 30, "mdef_bonus": 30, "speed_bonus": 0, "icon": "🐲"},
-    ]
-    for bn in bones_data:
-        existing = db.query(SummonBone).filter(SummonBone.bone_code == bn["bone_code"]).first()
-        if not existing:
-            db.add(SummonBone(**bn))
+        # --- 战骨 ---
+        bones_data = [
+            {"bone_code": "skull_common", "name": "兽骨头骨", "slot_type": "skull", "quality": "common",
+             "level_required": 1, "hp_bonus": 20, "patk_bonus": 0, "matk_bonus": 5,
+             "pdef_bonus": 5, "mdef_bonus": 5, "speed_bonus": 0, "icon": "💀"},
+            {"bone_code": "sternum_common", "name": "兽骨胸骨", "slot_type": "sternum", "quality": "common",
+             "level_required": 1, "hp_bonus": 40, "patk_bonus": 0, "matk_bonus": 0,
+             "pdef_bonus": 10, "mdef_bonus": 10, "speed_bonus": 0, "icon": "🦴"},
+            {"bone_code": "arm_bone_common", "name": "兽骨臂骨", "slot_type": "arm", "quality": "common",
+             "level_required": 1, "hp_bonus": 10, "patk_bonus": 8, "matk_bonus": 0,
+             "pdef_bonus": 5, "mdef_bonus": 0, "speed_bonus": 0, "icon": "🦴"},
+            {"bone_code": "leg_bone_common", "name": "兽骨腿骨", "slot_type": "leg", "quality": "common",
+             "level_required": 1, "hp_bonus": 15, "patk_bonus": 0, "matk_bonus": 0,
+             "pdef_bonus": 8, "mdef_bonus": 5, "speed_bonus": 5, "icon": "🦴"},
+            {"bone_code": "hand_bone_common", "name": "兽骨手骨", "slot_type": "hand", "quality": "common",
+             "level_required": 1, "hp_bonus": 5, "patk_bonus": 5, "matk_bonus": 5,
+             "pdef_bonus": 0, "mdef_bonus": 0, "speed_bonus": 3, "icon": "🦴"},
+            {"bone_code": "tail_bone_common", "name": "兽骨尾骨", "slot_type": "tail", "quality": "common",
+             "level_required": 1, "hp_bonus": 10, "patk_bonus": 3, "matk_bonus": 3,
+             "pdef_bonus": 3, "mdef_bonus": 3, "speed_bonus": 2, "icon": "🦴"},
+            {"bone_code": "soul_core_common", "name": "兽魂元魂", "slot_type": "soul_core", "quality": "common",
+             "level_required": 1, "hp_bonus": 30, "patk_bonus": 5, "matk_bonus": 5,
+             "pdef_bonus": 5, "mdef_bonus": 5, "speed_bonus": 2, "icon": "🔮"},
+            {"bone_code": "skull_rare", "name": "精钢头骨", "slot_type": "skull", "quality": "rare",
+             "level_required": 20, "hp_bonus": 50, "patk_bonus": 0, "matk_bonus": 15,
+             "pdef_bonus": 15, "mdef_bonus": 15, "speed_bonus": 0, "icon": "💀"},
+            {"bone_code": "sternum_rare", "name": "精钢胸骨", "slot_type": "sternum", "quality": "rare",
+             "level_required": 20, "hp_bonus": 100, "patk_bonus": 0, "matk_bonus": 0,
+             "pdef_bonus": 25, "mdef_bonus": 25, "speed_bonus": 0, "icon": "🦴"},
+            {"bone_code": "skull_epic", "name": "龙魂头骨", "slot_type": "skull", "quality": "epic",
+             "level_required": 40, "hp_bonus": 120, "patk_bonus": 0, "matk_bonus": 40,
+             "pdef_bonus": 30, "mdef_bonus": 30, "speed_bonus": 0, "icon": "🐲"},
+        ]
+        for bn in bones_data:
+            existing = db.query(SummonBone).filter(SummonBone.bone_code == bn["bone_code"]).first()
+            if not existing:
+                db.add(SummonBone(**bn))
+        db.flush()  # 刷新基础战骨，确保后续迁移查询立即可见，避免重复插入
 
-    # --- 魔魂 ---
-    souls_data = [
-        {"soul_code": "waste_soul", "name": "废魂", "quality": "waste", "category": "random",
-         "fixed_hp": 5, "fixed_patk": 1, "fixed_matk": 1, "fixed_pdef": 1, "fixed_mdef": 1, "fixed_speed": 1,
-         "percent_hp": 0, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
-         "icon": "⚪"},
-        {"soul_code": "yellow_soul_hp", "name": "黄魂·生命", "quality": "yellow", "category": "hp",
-         "fixed_hp": 30, "fixed_patk": 0, "fixed_matk": 0, "fixed_pdef": 5, "fixed_mdef": 5, "fixed_speed": 0,
-         "percent_hp": 3, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
-         "icon": "🟡"},
-        {"soul_code": "yellow_soul_patk", "name": "黄魂·力量", "quality": "yellow", "category": "patk",
-         "fixed_hp": 10, "fixed_patk": 8, "fixed_matk": 0, "fixed_pdef": 3, "fixed_mdef": 0, "fixed_speed": 2,
-         "percent_hp": 0, "percent_patk": 3, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
-         "icon": "🟡"},
-        {"soul_code": "xuan_soul_matk", "name": "玄魂·智慧", "quality": "xuan", "category": "matk",
-         "fixed_hp": 20, "fixed_patk": 0, "fixed_matk": 15, "fixed_pdef": 5, "fixed_mdef": 10, "fixed_speed": 3,
-         "percent_hp": 0, "percent_patk": 0, "percent_matk": 5, "percent_pdef": 0, "percent_mdef": 2, "percent_speed": 0,
-         "icon": "🟣"},
-        {"soul_code": "di_soul_tank", "name": "地魂·守护", "quality": "di", "category": "defense",
-         "fixed_hp": 80, "fixed_patk": 5, "fixed_matk": 5, "fixed_pdef": 20, "fixed_mdef": 20, "fixed_speed": 0,
-         "percent_hp": 5, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 5, "percent_mdef": 5, "percent_speed": 0,
-         "icon": "🟤"},
-        {"soul_code": "tian_soul_swift", "name": "天魂·疾风", "quality": "tian", "category": "speed",
-         "fixed_hp": 30, "fixed_patk": 10, "fixed_matk": 10, "fixed_pdef": 8, "fixed_mdef": 8, "fixed_speed": 20,
-         "percent_hp": 0, "percent_patk": 2, "percent_matk": 2, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 8,
-         "icon": "🔵"},
-        {"soul_code": "shen_soul_dragon", "name": "神魂·龙威", "quality": "shen", "category": "all",
-         "fixed_hp": 150, "fixed_patk": 30, "fixed_matk": 30, "fixed_pdef": 25, "fixed_mdef": 25, "fixed_speed": 15,
-         "percent_hp": 10, "percent_patk": 8, "percent_matk": 8, "percent_pdef": 5, "percent_mdef": 5, "percent_speed": 5,
-         "icon": "🌟"},
-    ]
-    for s in souls_data:
-        existing = db.query(SummonSoul).filter(SummonSoul.soul_code == s["soul_code"]).first()
-        if not existing:
-            db.add(SummonSoul(**s))
+        # --- 魔魂 ---
+        souls_data = [
+            {"soul_code": "waste_soul", "name": "废魂", "quality": "waste", "category": "random",
+             "fixed_hp": 5, "fixed_patk": 1, "fixed_matk": 1, "fixed_pdef": 1, "fixed_mdef": 1, "fixed_speed": 1,
+             "percent_hp": 0, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
+             "icon": "⚪"},
+            {"soul_code": "yellow_soul_hp", "name": "黄魂·生命", "quality": "yellow", "category": "hp",
+             "fixed_hp": 30, "fixed_patk": 0, "fixed_matk": 0, "fixed_pdef": 5, "fixed_mdef": 5, "fixed_speed": 0,
+             "percent_hp": 3, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
+             "icon": "🟡"},
+            {"soul_code": "yellow_soul_patk", "name": "黄魂·力量", "quality": "yellow", "category": "patk",
+             "fixed_hp": 10, "fixed_patk": 8, "fixed_matk": 0, "fixed_pdef": 3, "fixed_mdef": 0, "fixed_speed": 2,
+             "percent_hp": 0, "percent_patk": 3, "percent_matk": 0, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 0,
+             "icon": "🟡"},
+            {"soul_code": "xuan_soul_matk", "name": "玄魂·智慧", "quality": "xuan", "category": "matk",
+             "fixed_hp": 20, "fixed_patk": 0, "fixed_matk": 15, "fixed_pdef": 5, "fixed_mdef": 10, "fixed_speed": 3,
+             "percent_hp": 0, "percent_patk": 0, "percent_matk": 5, "percent_pdef": 0, "percent_mdef": 2, "percent_speed": 0,
+             "icon": "🟣"},
+            {"soul_code": "di_soul_tank", "name": "地魂·守护", "quality": "di", "category": "defense",
+             "fixed_hp": 80, "fixed_patk": 5, "fixed_matk": 5, "fixed_pdef": 20, "fixed_mdef": 20, "fixed_speed": 0,
+             "percent_hp": 5, "percent_patk": 0, "percent_matk": 0, "percent_pdef": 5, "percent_mdef": 5, "percent_speed": 0,
+             "icon": "🟤"},
+            {"soul_code": "tian_soul_swift", "name": "天魂·疾风", "quality": "tian", "category": "speed",
+             "fixed_hp": 30, "fixed_patk": 10, "fixed_matk": 10, "fixed_pdef": 8, "fixed_mdef": 8, "fixed_speed": 20,
+             "percent_hp": 0, "percent_patk": 2, "percent_matk": 2, "percent_pdef": 0, "percent_mdef": 0, "percent_speed": 8,
+             "icon": "🔵"},
+            {"soul_code": "shen_soul_dragon", "name": "神魂·龙威", "quality": "shen", "category": "all",
+             "fixed_hp": 150, "fixed_patk": 30, "fixed_matk": 30, "fixed_pdef": 25, "fixed_mdef": 25, "fixed_speed": 15,
+             "percent_hp": 10, "percent_patk": 8, "percent_matk": 8, "percent_pdef": 5, "percent_mdef": 5, "percent_speed": 5,
+             "icon": "🌟"},
+        ]
+        for s in souls_data:
+            existing = db.query(SummonSoul).filter(SummonSoul.soul_code == s["soul_code"]).first()
+            if not existing:
+                db.add(SummonSoul(**s))
 
-    # --- 战场 ---
-    battlefields_data = [
-        {"battlefield_code": "tiger_battlefield", "name": "猛虎战场", "level_min": 1, "level_max": 40,
-         "open_time_start": "06:00", "open_time_end": "24:00",
-         "camp_a_name": "猛虎营", "camp_b_name": "飞鹤寨",
-         "prestige_reward_win": 50, "prestige_reward_lose": 20, "exp_reward": 100},
-        {"battlefield_code": "crane_battlefield", "name": "飞鹤战场", "level_min": 40, "level_max": 100,
-         "open_time_start": "06:00", "open_time_end": "24:00",
-         "camp_a_name": "天鹤门", "camp_b_name": "幽冥教",
-         "prestige_reward_win": 100, "prestige_reward_lose": 40, "exp_reward": 300},
-    ]
-    for bf in battlefields_data:
-        existing = db.query(SummonBattlefield).filter(SummonBattlefield.battlefield_code == bf["battlefield_code"]).first()
-        if not existing:
-            db.add(SummonBattlefield(**bf))
+        # --- 战场 ---
+        battlefields_data = [
+            {"battlefield_code": "tiger_battlefield", "name": "猛虎战场", "level_min": 1, "level_max": 40,
+             "open_time_start": "06:00", "open_time_end": "24:00",
+             "camp_a_name": "猛虎营", "camp_b_name": "飞鹤寨",
+             "prestige_reward_win": 50, "prestige_reward_lose": 20, "exp_reward": 100},
+            {"battlefield_code": "crane_battlefield", "name": "飞鹤战场", "level_min": 40, "level_max": 100,
+             "open_time_start": "06:00", "open_time_end": "24:00",
+             "camp_a_name": "天鹤门", "camp_b_name": "幽冥教",
+             "prestige_reward_win": 100, "prestige_reward_lose": 40, "exp_reward": 300},
+        ]
+        for bf in battlefields_data:
+            existing = db.query(SummonBattlefield).filter(SummonBattlefield.battlefield_code == bf["battlefield_code"]).first()
+            if not existing:
+                db.add(SummonBattlefield(**bf))
 
-    # --- 精灵（附属系统基础数据）---
-    spirits_data = [
-        {"spirit_code": "fire_spirit", "name": "火之精灵", "element_type": "fire", "quality": "common",
-         "attr_pool_json": json.dumps({"matk": (5, 15), "patk": (3, 10)}), "icon": "🔥"},
-        {"spirit_code": "water_spirit", "name": "水之精灵", "element_type": "water", "quality": "common",
-         "attr_pool_json": json.dumps({"mdef": (5, 15), "hp": (20, 50)}), "icon": "💧"},
-        {"spirit_code": "wind_spirit", "name": "风之精灵", "element_type": "wind", "quality": "rare",
-         "attr_pool_json": json.dumps({"speed": (8, 20), "matk": (5, 12)}), "icon": "🌪️"},
-        {"spirit_code": "earth_spirit", "name": "土之精灵", "element_type": "earth", "quality": "rare",
-         "attr_pool_json": json.dumps({"pdef": (10, 25), "hp": (30, 80)}), "icon": "🪨"},
-    ]
-    for sp in spirits_data:
-        existing = db.query(SummonSpirit).filter(SummonSpirit.spirit_code == sp["spirit_code"]).first()
-        if not existing:
-            db.add(SummonSpirit(**sp))
+        # --- 精灵（附属系统基础数据）---
+        spirits_data = [
+            {"spirit_code": "fire_spirit", "name": "火之精灵", "element_type": "fire", "quality": "common",
+             "attr_pool_json": json.dumps({"matk": (5, 15), "patk": (3, 10)}), "icon": "🔥"},
+            {"spirit_code": "water_spirit", "name": "水之精灵", "element_type": "water", "quality": "common",
+             "attr_pool_json": json.dumps({"mdef": (5, 15), "hp": (20, 50)}), "icon": "💧"},
+            {"spirit_code": "wind_spirit", "name": "风之精灵", "element_type": "wind", "quality": "rare",
+             "attr_pool_json": json.dumps({"speed": (8, 20), "matk": (5, 12)}), "icon": "🌪️"},
+            {"spirit_code": "earth_spirit", "name": "土之精灵", "element_type": "earth", "quality": "rare",
+             "attr_pool_json": json.dumps({"pdef": (10, 25), "hp": (30, 80)}), "icon": "🪨"},
+        ]
+        for sp in spirits_data:
+            existing = db.query(SummonSpirit).filter(SummonSpirit.spirit_code == sp["spirit_code"]).first()
+            if not existing:
+                db.add(SummonSpirit(**sp))
 
-    db.commit()
+        # --- 迁移补充：地图（来源 3g_games summon_data.py 规格 7 图） ---
+        for m in MIGRATED_MAPS:
+            existing = db.query(SummonMap).filter(SummonMap.map_code == m["map_code"]).first()
+            if not existing:
+                db.add(SummonMap(**m))
+
+        # --- 迁移补充：幻兽（120 图鉴） ---
+        for b in MIGRATED_BEASTS:
+            existing = db.query(SummonBeast).filter(SummonBeast.beast_code == b["beast_code"]).first()
+            if not existing:
+                db.add(SummonBeast(**b))
+
+        # --- 迁移补充：技能（60 基础技能） ---
+        for s in MIGRATED_SKILLS:
+            existing = db.query(SummonSkill).filter(SummonSkill.skill_code == s["skill_code"]).first()
+            if not existing:
+                db.add(SummonSkill(**s))
+
+        # --- 迁移补充：战骨（rare/epic 全部位） ---
+        for bn in MIGRATED_BONES:
+            existing = db.query(SummonBone).filter(SummonBone.bone_code == bn["bone_code"]).first()
+            if not existing:
+                db.add(SummonBone(**bn))
+
+        # --- 迁移补充：魔魂（天魂·极品命名魂） ---
+        for s in MIGRATED_SOULS:
+            existing = db.query(SummonSoul).filter(SummonSoul.soul_code == s["soul_code"]).first()
+            if not existing:
+                db.add(SummonSoul(**s))
+
+        # --- 迁移补充：战灵（补齐木/金/神 槽位） ---
+        for sp in MIGRATED_SPIRITS:
+            existing = db.query(SummonSpirit).filter(SummonSpirit.spirit_code == sp["spirit_code"]).first()
+            if not existing:
+                db.add(SummonSpirit(**sp))
+
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
+# ===== 迁移补充数据（来源：3g_games/app/routers/summon_data.py）=====
+MIGRATED_MAPS = [
+    {'map_code': 'newbie_guide', 'name': '新手村/东村', 'level_min': 1, 'level_max': 9, 'beast_pool_json': '["SZW_0001", "SZW_0002", "SZW_0003", "SZW_0004", "SZW_0005", "SZW_0006", "SZW_0007", "SZW_0008", "SZW_0009", "SZW_0010", "SZW_0011", "SZW_0012", "SZW_0013", "SZW_0014", "SZW_0015"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '新手村/东村（1-9级）', 'vitality_cost': 2},
+    {'map_code': 'qingxi_low', 'name': '清溪/低级图', 'level_min': 10, 'level_max': 19, 'beast_pool_json': '["SZW_0001", "SZW_0002", "SZW_0003", "SZW_0004", "SZW_0005", "SZW_0006", "SZW_0007", "SZW_0008", "SZW_0009", "SZW_0010", "SZW_0011", "SZW_0012", "SZW_0013", "SZW_0014", "SZW_0015", "SZW_0016", "SZW_0017", "SZW_0018", "SZW_0019", "SZW_0020", "SZW_0021", "SZW_0022", "SZW_0023", "SZW_0024", "SZW_0025", "SZW_0026", "SZW_0027", "SZW_0028", "SZW_0029", "SZW_0030"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '清溪/低级图（10-19级）', 'vitality_cost': 2},
+    {'map_code': 'quarry', 'name': '石工矿场', 'level_min': 20, 'level_max': 29, 'beast_pool_json': '["SZW_0016", "SZW_0017", "SZW_0018", "SZW_0019", "SZW_0020", "SZW_0021", "SZW_0022", "SZW_0023", "SZW_0024", "SZW_0025", "SZW_0026", "SZW_0027", "SZW_0028", "SZW_0029", "SZW_0030"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '石工矿场（20-29级）', 'vitality_cost': 2},
+    {'map_code': 'lake', 'name': '湖里', 'level_min': 20, 'level_max': 29, 'beast_pool_json': '["SZW_0016", "SZW_0017", "SZW_0018", "SZW_0019", "SZW_0020", "SZW_0021", "SZW_0022", "SZW_0023", "SZW_0024", "SZW_0025", "SZW_0026", "SZW_0027", "SZW_0028", "SZW_0029", "SZW_0030"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '湖里（20-29级）', 'vitality_cost': 2},
+    {'map_code': 'swamp', 'name': '树藤沼泽/黑色荒原', 'level_min': 30, 'level_max': 39, 'beast_pool_json': '["SZW_0031", "SZW_0032", "SZW_0033", "SZW_0034", "SZW_0035", "SZW_0036", "SZW_0037", "SZW_0038", "SZW_0039", "SZW_0040", "SZW_0041", "SZW_0042", "SZW_0043", "SZW_0044", "SZW_0045"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '树藤沼泽/黑色荒原（30-39级）', 'vitality_cost': 2},
+    {'map_code': 'desert', 'name': '落日荒漠/雷鸣林地', 'level_min': 40, 'level_max': 49, 'beast_pool_json': '["SZW_0046", "SZW_0047", "SZW_0048", "SZW_0049", "SZW_0050", "SZW_0051", "SZW_0052", "SZW_0053", "SZW_0054", "SZW_0055", "SZW_0056", "SZW_0057", "SZW_0058", "SZW_0059", "SZW_0060"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '落日荒漠/雷鸣林地（40-49级）', 'vitality_cost': 2},
+    {'map_code': 'snow_mountain', 'name': '雪山/高级图', 'level_min': 50, 'level_max': 100, 'beast_pool_json': '["SZW_0061", "SZW_0062", "SZW_0063", "SZW_0064", "SZW_0065", "SZW_0066", "SZW_0067", "SZW_0068", "SZW_0069", "SZW_0070", "SZW_0071", "SZW_0072", "SZW_0073", "SZW_0074", "SZW_0075", "SZW_0076", "SZW_0077", "SZW_0078", "SZW_0079", "SZW_0080", "SZW_0081", "SZW_0082", "SZW_0083", "SZW_0084", "SZW_0085", "SZW_0086", "SZW_0087", "SZW_0088", "SZW_0089", "SZW_0090", "SZW_0091", "SZW_0092", "SZW_0093", "SZW_0094", "SZW_0095", "SZW_0096", "SZW_0097", "SZW_0098", "SZW_0099", "SZW_0100", "SZW_0101", "SZW_0102", "SZW_0103", "SZW_0104", "SZW_0105", "SZW_0106", "SZW_0107", "SZW_0108", "SZW_0109", "SZW_0110", "SZW_0111", "SZW_0112", "SZW_0113", "SZW_0114", "SZW_0115", "SZW_0116", "SZW_0117", "SZW_0118", "SZW_0119", "SZW_0120"]', 'drop_json': '{"copper": [30, 100], "ball_normal": [0, 1]}', 'description': '雪山/高级图（50-100级）', 'vitality_cost': 2},
+]
+
+MIGRATED_BEASTS = [
+    {'beast_code': 'SZW_0001', 'name': '潮芽鱼', 'race_type': 'water', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 202, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 12, 'base_mdef': 12, 'base_speed': 15, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_018", "SK_011", "SK_013", "SK_014"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T1·N·CTRL 定位：减速', 'catch_rate': 80},
+    {'beast_code': 'SZW_0002', 'name': '清泉龟', 'race_type': 'water', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 275, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 16, 'base_mdef': 16, 'base_speed': 12, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T1·N·TANK 定位：护盾', 'catch_rate': 80},
+    {'beast_code': 'SZW_0003', 'name': '泡泡鲛', 'race_type': 'water', 'map_level_min': 1, 'rarity': 'uncommon', 'base_hp': 202, 'base_patk': 16, 'base_matk': 28, 'base_pdef': 13, 'base_mdef': 13, 'base_speed': 13, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T1·R·MAG 定位：法攻叠层', 'catch_rate': 60},
+    {'beast_code': 'SZW_0004', 'name': '岩牙狼', 'race_type': 'beast', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 209, 'base_patk': 28, 'base_matk': 16, 'base_pdef': 13, 'base_mdef': 13, 'base_speed': 13, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T1·N·PHY 定位：流血', 'catch_rate': 80},
+    {'beast_code': 'SZW_0005', 'name': '角豚兽', 'race_type': 'beast', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 275, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 16, 'base_mdef': 16, 'base_speed': 12, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_007", "SK_006", "SK_036", "SK_010"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T1·N·TANK 定位：开场减伤', 'catch_rate': 80},
+    {'beast_code': 'SZW_0006', 'name': '砂爪猫', 'race_type': 'beast', 'map_level_min': 1, 'rarity': 'uncommon', 'base_hp': 209, 'base_patk': 28, 'base_matk': 16, 'base_pdef': 13, 'base_mdef': 13, 'base_speed': 13, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_004", "SK_001", "SK_002", "SK_003"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T1·R·PHY 定位：连击', 'catch_rate': 60},
+    {'beast_code': 'SZW_0007', 'name': '毒针蚁', 'race_type': 'bug', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 231, 'base_patk': 24, 'base_matk': 24, 'base_pdef': 14, 'base_mdef': 14, 'base_speed': 12, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T1·N·CURSE 定位：叠毒', 'catch_rate': 80},
+    {'beast_code': 'SZW_0008', 'name': '蛊壳虫', 'race_type': 'bug', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 275, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 16, 'base_mdef': 16, 'base_speed': 12, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_007", "SK_023", "SK_024", "SK_037"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T1·N·TANK 定位：抗性', 'catch_rate': 80},
+    {'beast_code': 'SZW_0009', 'name': '翳雾蛛', 'race_type': 'bug', 'map_level_min': 1, 'rarity': 'uncommon', 'base_hp': 202, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 12, 'base_mdef': 12, 'base_speed': 15, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_028", "SK_039", "SK_018", "SK_019"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T1·R·CTRL 定位：降命中', 'catch_rate': 60},
+    {'beast_code': 'SZW_0010', 'name': '风羽雀', 'race_type': 'flying', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 202, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 12, 'base_mdef': 12, 'base_speed': 15, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_017", "SK_018", "SK_042", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T1·N·CTRL 定位：加速', 'catch_rate': 80},
+    {'beast_code': 'SZW_0011', 'name': '雷翎隼', 'race_type': 'flying', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 209, 'base_patk': 28, 'base_matk': 16, 'base_pdef': 13, 'base_mdef': 13, 'base_speed': 13, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T1·N·PHY 定位：暴击微增', 'catch_rate': 80},
+    {'beast_code': 'SZW_0012', 'name': '飘翼鸢', 'race_type': 'flying', 'map_level_min': 1, 'rarity': 'uncommon', 'base_hp': 202, 'base_patk': 19, 'base_matk': 19, 'base_pdef': 12, 'base_mdef': 12, 'base_speed': 15, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T1·R·CTRL 定位：眩晕', 'catch_rate': 60},
+    {'beast_code': 'SZW_0013', 'name': '幼炎龙', 'race_type': 'dragon', 'map_level_min': 1, 'rarity': 'rare', 'base_hp': 202, 'base_patk': 16, 'base_matk': 28, 'base_pdef': 13, 'base_mdef': 13, 'base_speed': 13, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_015", "SK_044", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T1·E·MAG 定位：灼烧', 'catch_rate': 30},
+    {'beast_code': 'SZW_0014', 'name': '骨灯灵', 'race_type': 'undead', 'map_level_min': 1, 'rarity': 'common', 'base_hp': 231, 'base_patk': 24, 'base_matk': 24, 'base_pdef': 14, 'base_mdef': 14, 'base_speed': 12, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_021", "SK_046", "SK_047", "SK_048"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T1·N·CURSE 定位：吸血', 'catch_rate': 80},
+    {'beast_code': 'SZW_0015', 'name': '幽灯魇', 'race_type': 'undead', 'map_level_min': 1, 'rarity': 'legendary', 'base_hp': 231, 'base_patk': 24, 'base_matk': 24, 'base_pdef': 14, 'base_mdef': 14, 'base_speed': 12, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_025", "SK_046", "SK_047", "SK_048"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T1·L·CURSE 定位：复生', 'catch_rate': 10},
+    {'beast_code': 'SZW_0016', 'name': '冰鳞鲟', 'race_type': 'water', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 387, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 25, 'base_mdef': 25, 'base_speed': 16, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_007", "SK_008", "SK_009", "SK_010"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T2·N·TANK 定位：物防提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0017', 'name': '寒潮鳗', 'race_type': 'water', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 285, 'base_patk': 23, 'base_matk': 41, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 17, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_012", "SK_011", "SK_013", "SK_014"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T2·N·MAG 定位：冰缓', 'catch_rate': 80},
+    {'beast_code': 'SZW_0018', 'name': '厚甲龟', 'race_type': 'water', 'map_level_min': 10, 'rarity': 'rare', 'base_hp': 387, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 25, 'base_mdef': 25, 'base_speed': 16, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T2·E·TANK 定位：护盾随血增', 'catch_rate': 30},
+    {'beast_code': 'SZW_0019', 'name': '赤鬃犬', 'race_type': 'beast', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 294, 'base_patk': 41, 'base_matk': 23, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 17, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_001", "SK_002", "SK_003", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T2·N·PHY 定位：撕裂', 'catch_rate': 80},
+    {'beast_code': 'SZW_0020', 'name': '铜角牛', 'race_type': 'beast', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 387, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 25, 'base_mdef': 25, 'base_speed': 16, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T2·N·TANK 定位：嘲讽', 'catch_rate': 80},
+    {'beast_code': 'SZW_0021', 'name': '采矿猴', 'race_type': 'beast', 'map_level_min': 10, 'rarity': 'uncommon', 'base_hp': 294, 'base_patk': 41, 'base_matk': 23, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 17, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_002", "SK_001", "SK_003", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T2·R·PHY 定位：破甲', 'catch_rate': 60},
+    {'beast_code': 'SZW_0022', 'name': '吞岩兽', 'race_type': 'beast', 'map_level_min': 10, 'rarity': 'rare', 'base_hp': 387, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 25, 'base_mdef': 25, 'base_speed': 16, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_006", "SK_007", "SK_036", "SK_010"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T2·E·TANK 定位：反击强化', 'catch_rate': 30},
+    {'beast_code': 'SZW_0023', 'name': '腐沼蝇', 'race_type': 'bug', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 325, 'base_patk': 35, 'base_matk': 35, 'base_pdef': 22, 'base_mdef': 22, 'base_speed': 16, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T2·N·CURSE 定位：毒扩散', 'catch_rate': 80},
+    {'beast_code': 'SZW_0024', 'name': '巢铠甲', 'race_type': 'bug', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 387, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 25, 'base_mdef': 25, 'base_speed': 16, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_008", "SK_023", "SK_024", "SK_037"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T2·N·TANK 定位：减伤', 'catch_rate': 80},
+    {'beast_code': 'SZW_0025', 'name': '紫雾虫', 'race_type': 'bug', 'map_level_min': 10, 'rarity': 'uncommon', 'base_hp': 325, 'base_patk': 35, 'base_matk': 35, 'base_pdef': 22, 'base_mdef': 22, 'base_speed': 16, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_021", "SK_023", "SK_024", "SK_037"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T2·R·CURSE 定位：毒吸联动', 'catch_rate': 60},
+    {'beast_code': 'SZW_0026', 'name': '翔风雀', 'race_type': 'flying', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 285, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 20, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_017", "SK_018", "SK_042", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T2·N·CTRL 定位：速度提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0027', 'name': '穿云燕', 'race_type': 'flying', 'map_level_min': 10, 'rarity': 'common', 'base_hp': 294, 'base_patk': 41, 'base_matk': 23, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 17, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_041", "SK_040", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T2·N·PHY 定位：连击倾向', 'catch_rate': 80},
+    {'beast_code': 'SZW_0028', 'name': '风雷蝶', 'race_type': 'flying', 'map_level_min': 10, 'rarity': 'uncommon', 'base_hp': 285, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 20, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_016", "SK_017", "SK_018", "SK_042"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T2·R·CTRL 定位：麻痹', 'catch_rate': 60},
+    {'beast_code': 'SZW_0029', 'name': '烬息龙', 'race_type': 'dragon', 'map_level_min': 10, 'rarity': 'uncommon', 'base_hp': 285, 'base_patk': 23, 'base_matk': 41, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 17, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T2·R·MAG 定位：灼烧爆发', 'catch_rate': 60},
+    {'beast_code': 'SZW_0030', 'name': '影缚魂', 'race_type': 'undead', 'map_level_min': 10, 'rarity': 'legendary', 'base_hp': 285, 'base_patk': 28, 'base_matk': 28, 'base_pdef': 20, 'base_mdef': 20, 'base_speed': 20, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_019", "SK_007", "SK_008", "SK_052"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T2·L·CTRL 定位：开场沉默', 'catch_rate': 10},
+    {'beast_code': 'SZW_0031', 'name': '渊潮鲛', 'race_type': 'water', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 386, 'base_patk': 33, 'base_matk': 58, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 21, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T3·N·MAG 定位：冻结概率', 'catch_rate': 80},
+    {'beast_code': 'SZW_0032', 'name': '玄水螺', 'race_type': 'water', 'map_level_min': 20, 'rarity': 'uncommon', 'base_hp': 525, 'base_patk': 40, 'base_matk': 40, 'base_pdef': 35, 'base_mdef': 35, 'base_speed': 19, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T3·R·TANK 定位：护盾反伤', 'catch_rate': 60},
+    {'beast_code': 'SZW_0033', 'name': '狂牙獾', 'race_type': 'beast', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T3·N·PHY 定位：流血延长', 'catch_rate': 80},
+    {'beast_code': 'SZW_0034', 'name': '岩背熊', 'race_type': 'beast', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 525, 'base_patk': 40, 'base_matk': 40, 'base_pdef': 35, 'base_mdef': 35, 'base_speed': 19, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T3·N·TANK 定位：物防壁垒', 'catch_rate': 80},
+    {'beast_code': 'SZW_0035', 'name': '赤爪豹', 'race_type': 'beast', 'map_level_min': 20, 'rarity': 'uncommon', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T3·R·PHY 定位：连击+', 'catch_rate': 60},
+    {'beast_code': 'SZW_0036', 'name': '獠角豺', 'race_type': 'beast', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T3·N·PHY 定位：破甲', 'catch_rate': 80},
+    {'beast_code': 'SZW_0037', 'name': '蛊雾蛛', 'race_type': 'bug', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 386, 'base_patk': 40, 'base_matk': 40, 'base_pdef': 28, 'base_mdef': 28, 'base_speed': 25, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T3·N·CTRL 定位：降速', 'catch_rate': 80},
+    {'beast_code': 'SZW_0038', 'name': '噬心蠹', 'race_type': 'bug', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 441, 'base_patk': 50, 'base_matk': 50, 'base_pdef': 31, 'base_mdef': 31, 'base_speed': 19, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T3·N·CURSE 定位：DOT叠层', 'catch_rate': 80},
+    {'beast_code': 'SZW_0039', 'name': '毒巢后', 'race_type': 'bug', 'map_level_min': 20, 'rarity': 'uncommon', 'base_hp': 441, 'base_patk': 50, 'base_matk': 50, 'base_pdef': 31, 'base_mdef': 31, 'base_speed': 19, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T3·R·CURSE 定位：毒伤窗口', 'catch_rate': 60},
+    {'beast_code': 'SZW_0040', 'name': '断翼鸦', 'race_type': 'flying', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 386, 'base_patk': 40, 'base_matk': 40, 'base_pdef': 28, 'base_mdef': 28, 'base_speed': 25, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T3·N·CTRL 定位：降命中', 'catch_rate': 80},
+    {'beast_code': 'SZW_0041', 'name': '雷隼骑', 'race_type': 'flying', 'map_level_min': 20, 'rarity': 'uncommon', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T3·R·PHY 定位：先手暴击', 'catch_rate': 60},
+    {'beast_code': 'SZW_0042', 'name': '云刃鹫', 'race_type': 'flying', 'map_level_min': 20, 'rarity': 'common', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T3·N·PHY 定位：穿透', 'catch_rate': 80},
+    {'beast_code': 'SZW_0043', 'name': '苍焰幼龙', 'race_type': 'dragon', 'map_level_min': 20, 'rarity': 'rare', 'base_hp': 399, 'base_patk': 58, 'base_matk': 33, 'base_pdef': 29, 'base_mdef': 29, 'base_speed': 22, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T3·E·PHY 定位：威压降防', 'catch_rate': 30},
+    {'beast_code': 'SZW_0044', 'name': '冥骨犬', 'race_type': 'undead', 'map_level_min': 20, 'rarity': 'uncommon', 'base_hp': 441, 'base_patk': 50, 'base_matk': 50, 'base_pdef': 31, 'base_mdef': 31, 'base_speed': 19, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_021", "SK_046", "SK_047", "SK_048"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T3·R·CURSE 定位：吸血流血', 'catch_rate': 60},
+    {'beast_code': 'SZW_0045', 'name': '咒墓王', 'race_type': 'undead', 'map_level_min': 20, 'rarity': 'legendary', 'base_hp': 441, 'base_patk': 50, 'base_matk': 50, 'base_pdef': 31, 'base_mdef': 31, 'base_speed': 19, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_048", "SK_046", "SK_047", "SK_021"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T3·L·CURSE 定位：诅咒回血', 'catch_rate': 10},
+    {'beast_code': 'SZW_0046', 'name': '海潮鲸', 'race_type': 'water', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 687, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 48, 'base_mdef': 48, 'base_speed': 23, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T4·N·TANK 定位：高血抗压', 'catch_rate': 80},
+    {'beast_code': 'SZW_0047', 'name': '冰壳蟹', 'race_type': 'water', 'map_level_min': 30, 'rarity': 'uncommon', 'base_hp': 687, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 48, 'base_mdef': 48, 'base_speed': 23, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T4·R·TANK 定位：双防提升', 'catch_rate': 60},
+    {'beast_code': 'SZW_0048', 'name': '海龙鱼', 'race_type': 'water', 'map_level_min': 30, 'rarity': 'rare', 'base_hp': 506, 'base_patk': 46, 'base_matk': 80, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 25, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T4·E·MAG 定位：冰潮AOE', 'catch_rate': 30},
+    {'beast_code': 'SZW_0049', 'name': '砂暴獾', 'race_type': 'beast', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 522, 'base_patk': 80, 'base_matk': 46, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 26, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T4·N·PHY 定位：暴击提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0050', 'name': '铁骨犀', 'race_type': 'beast', 'map_level_min': 30, 'rarity': 'uncommon', 'base_hp': 687, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 48, 'base_mdef': 48, 'base_speed': 23, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T4·R·TANK 定位：嘲讽减伤', 'catch_rate': 60},
+    {'beast_code': 'SZW_0051', 'name': '落魂兽', 'race_type': 'beast', 'map_level_min': 30, 'rarity': 'rare', 'base_hp': 522, 'base_patk': 80, 'base_matk': 46, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 26, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T4·E·PHY 定位：斩杀增伤', 'catch_rate': 30},
+    {'beast_code': 'SZW_0052', 'name': '穿刺蝎', 'race_type': 'bug', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 522, 'base_patk': 80, 'base_matk': 46, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 26, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_002", "SK_023", "SK_024", "SK_037"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T4·N·PHY 定位：破甲', 'catch_rate': 80},
+    {'beast_code': 'SZW_0053', 'name': '腐翳蜂', 'race_type': 'bug', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 577, 'base_patk': 69, 'base_matk': 69, 'base_pdef': 42, 'base_mdef': 42, 'base_speed': 23, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T4·N·CURSE 定位：DOT扩散', 'catch_rate': 80},
+    {'beast_code': 'SZW_0054', 'name': '毒母蛛', 'race_type': 'bug', 'map_level_min': 30, 'rarity': 'uncommon', 'base_hp': 506, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 38, 'base_mdef': 38, 'base_speed': 30, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T4·R·CTRL 定位：网缚', 'catch_rate': 60},
+    {'beast_code': 'SZW_0055', 'name': '落日雕', 'race_type': 'flying', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 506, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 38, 'base_mdef': 38, 'base_speed': 30, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T4·N·CTRL 定位：速度爆发', 'catch_rate': 80},
+    {'beast_code': 'SZW_0056', 'name': '风刃鸢', 'race_type': 'flying', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 522, 'base_patk': 80, 'base_matk': 46, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 26, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T4·N·PHY 定位：连击', 'catch_rate': 80},
+    {'beast_code': 'SZW_0057', 'name': '雷鸣隼', 'race_type': 'flying', 'map_level_min': 30, 'rarity': 'uncommon', 'base_hp': 506, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 38, 'base_mdef': 38, 'base_speed': 30, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T4·R·CTRL 定位：麻痹控制', 'catch_rate': 60},
+    {'beast_code': 'SZW_0058', 'name': '霜息龙', 'race_type': 'dragon', 'map_level_min': 30, 'rarity': 'uncommon', 'base_hp': 506, 'base_patk': 46, 'base_matk': 80, 'base_pdef': 39, 'base_mdef': 39, 'base_speed': 25, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T4·R·MAG 定位：冻结窗口', 'catch_rate': 60},
+    {'beast_code': 'SZW_0059', 'name': '冥甲尸', 'race_type': 'undead', 'map_level_min': 30, 'rarity': 'common', 'base_hp': 687, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 48, 'base_mdef': 48, 'base_speed': 23, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_052", "SK_007", "SK_008", "SK_050"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T4·N·TANK 定位：抗性', 'catch_rate': 80},
+    {'beast_code': 'SZW_0060', 'name': '幽王骸', 'race_type': 'undead', 'map_level_min': 30, 'rarity': 'legendary', 'base_hp': 687, 'base_patk': 56, 'base_matk': 56, 'base_pdef': 48, 'base_mdef': 48, 'base_speed': 23, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_052", "SK_007", "SK_008", "SK_050"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T4·L·TANK 定位：回魂护盾', 'catch_rate': 10},
+    {'beast_code': 'SZW_0061', 'name': '深渊鲛', 'race_type': 'water', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 644, 'base_patk': 61, 'base_matk': 107, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 29, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T5·N·MAG 定位：冰缓连锁', 'catch_rate': 80},
+    {'beast_code': 'SZW_0062', 'name': '潮汐螺皇', 'race_type': 'water', 'map_level_min': 40, 'rarity': 'uncommon', 'base_hp': 875, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 63, 'base_mdef': 63, 'base_speed': 27, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T5·R·TANK 定位：护盾强化', 'catch_rate': 60},
+    {'beast_code': 'SZW_0063', 'name': '玄海龙鳝', 'race_type': 'water', 'map_level_min': 40, 'rarity': 'rare', 'base_hp': 644, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 50, 'base_mdef': 50, 'base_speed': 34, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_032", "SK_011", "SK_013", "SK_014"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T5·E·CTRL 定位：冻结降速', 'catch_rate': 30},
+    {'beast_code': 'SZW_0064', 'name': '狂角狮', 'race_type': 'beast', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 665, 'base_patk': 107, 'base_matk': 61, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 30, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T5·N·PHY 定位：斩击增伤', 'catch_rate': 80},
+    {'beast_code': 'SZW_0065', 'name': '岩背巨熊', 'race_type': 'beast', 'map_level_min': 40, 'rarity': 'uncommon', 'base_hp': 875, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 63, 'base_mdef': 63, 'base_speed': 27, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T5·R·TANK 定位：反伤', 'catch_rate': 60},
+    {'beast_code': 'SZW_0066', 'name': '群噬蠊', 'race_type': 'bug', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 735, 'base_patk': 92, 'base_matk': 92, 'base_pdef': 55, 'base_mdef': 55, 'base_speed': 27, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T5·N·CURSE 定位：叠毒加速', 'catch_rate': 80},
+    {'beast_code': 'SZW_0067', 'name': '蛊巢将', 'race_type': 'bug', 'map_level_min': 40, 'rarity': 'uncommon', 'base_hp': 644, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 50, 'base_mdef': 50, 'base_speed': 34, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T5·R·CTRL 定位：降命中降速', 'catch_rate': 60},
+    {'beast_code': 'SZW_0068', 'name': '腐王蛛', 'race_type': 'bug', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 735, 'base_patk': 92, 'base_matk': 92, 'base_pdef': 55, 'base_mdef': 55, 'base_speed': 27, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T5·N·CURSE 定位：吸血放大', 'catch_rate': 80},
+    {'beast_code': 'SZW_0069', 'name': '风雷鹰', 'race_type': 'flying', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 644, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 50, 'base_mdef': 50, 'base_speed': 34, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T5·N·CTRL 定位：先手优势', 'catch_rate': 80},
+    {'beast_code': 'SZW_0070', 'name': '云刃隼王', 'race_type': 'flying', 'map_level_min': 40, 'rarity': 'uncommon', 'base_hp': 665, 'base_patk': 107, 'base_matk': 61, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 30, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T5·R·PHY 定位：追击', 'catch_rate': 60},
+    {'beast_code': 'SZW_0071', 'name': '飓翼鹫', 'race_type': 'flying', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 665, 'base_patk': 107, 'base_matk': 61, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 30, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T5·N·PHY 定位：穿透', 'catch_rate': 80},
+    {'beast_code': 'SZW_0072', 'name': '苍炎龙', 'race_type': 'dragon', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 644, 'base_patk': 61, 'base_matk': 107, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 29, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T5·N·MAG 定位：灼烧', 'catch_rate': 80},
+    {'beast_code': 'SZW_0073', 'name': '星纹龙', 'race_type': 'dragon', 'map_level_min': 40, 'rarity': 'rare', 'base_hp': 665, 'base_patk': 107, 'base_matk': 61, 'base_pdef': 52, 'base_mdef': 52, 'base_speed': 30, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T5·E·PHY 定位：威压破防', 'catch_rate': 30},
+    {'beast_code': 'SZW_0074', 'name': '影咒僧', 'race_type': 'undead', 'map_level_min': 40, 'rarity': 'common', 'base_hp': 644, 'base_patk': 74, 'base_matk': 74, 'base_pdef': 50, 'base_mdef': 50, 'base_speed': 34, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_019", "SK_007", "SK_008", "SK_052"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T5·N·CTRL 定位：沉默', 'catch_rate': 80},
+    {'beast_code': 'SZW_0075', 'name': '冥渊王座', 'race_type': 'undead', 'map_level_min': 40, 'rarity': 'legendary', 'base_hp': 735, 'base_patk': 92, 'base_matk': 92, 'base_pdef': 55, 'base_mdef': 55, 'base_speed': 27, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_048", "SK_046", "SK_047", "SK_021"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T5·L·CURSE 定位：群诅咒', 'catch_rate': 10},
+    {'beast_code': 'SZW_0076', 'name': '寒渊鲸', 'race_type': 'water', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 1087, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 31, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T6·N·TANK 定位：高血护盾', 'catch_rate': 80},
+    {'beast_code': 'SZW_0077', 'name': '冰潮鲛王', 'race_type': 'water', 'map_level_min': 50, 'rarity': 'uncommon', 'base_hp': 800, 'base_patk': 79, 'base_matk': 139, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 33, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T6·R·MAG 定位：冻结+', 'catch_rate': 60},
+    {'beast_code': 'SZW_0078', 'name': '玄潮龙鱼', 'race_type': 'water', 'map_level_min': 50, 'rarity': 'rare', 'base_hp': 800, 'base_patk': 79, 'base_matk': 139, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 33, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T6·E·MAG 定位：法穿增益', 'catch_rate': 30},
+    {'beast_code': 'SZW_0079', 'name': '狂獠虎机', 'race_type': 'beast', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 826, 'base_patk': 139, 'base_matk': 79, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 34, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T6·N·PHY 定位：暴击提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0080', 'name': '铁角巨犀', 'race_type': 'beast', 'map_level_min': 50, 'rarity': 'uncommon', 'base_hp': 1087, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 31, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T6·R·TANK 定位：嘲讽减伤', 'catch_rate': 60},
+    {'beast_code': 'SZW_0081', 'name': '霸爪王豹', 'race_type': 'beast', 'map_level_min': 50, 'rarity': 'rare', 'base_hp': 826, 'base_patk': 139, 'base_matk': 79, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 34, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T6·E·PHY 定位：斩杀强化', 'catch_rate': 30},
+    {'beast_code': 'SZW_0082', 'name': '毒云蜂后', 'race_type': 'bug', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 913, 'base_patk': 119, 'base_matk': 119, 'base_pdef': 70, 'base_mdef': 70, 'base_speed': 31, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T6·N·CURSE 定位：DOT扩散', 'catch_rate': 80},
+    {'beast_code': 'SZW_0083', 'name': '腐化螳', 'race_type': 'bug', 'map_level_min': 50, 'rarity': 'uncommon', 'base_hp': 826, 'base_patk': 139, 'base_matk': 79, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 34, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_002", "SK_023", "SK_024", "SK_037"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T6·R·PHY 定位：破甲流血', 'catch_rate': 60},
+    {'beast_code': 'SZW_0084', 'name': '蛊皇', 'race_type': 'bug', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 800, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 64, 'base_mdef': 64, 'base_speed': 39, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T6·N·CTRL 定位：降速降防', 'catch_rate': 80},
+    {'beast_code': 'SZW_0085', 'name': '风暴隼', 'race_type': 'flying', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 800, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 64, 'base_mdef': 64, 'base_speed': 39, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T6·N·CTRL 定位：先手爆发', 'catch_rate': 80},
+    {'beast_code': 'SZW_0086', 'name': '雷翼鸢王', 'race_type': 'flying', 'map_level_min': 50, 'rarity': 'uncommon', 'base_hp': 826, 'base_patk': 139, 'base_matk': 79, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 34, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T6·R·PHY 定位：连击追击', 'catch_rate': 60},
+    {'beast_code': 'SZW_0087', 'name': '天翔鹫', 'race_type': 'flying', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 800, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 64, 'base_mdef': 64, 'base_speed': 39, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T6·N·CTRL 定位：闪避提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0088', 'name': '烬星龙', 'race_type': 'dragon', 'map_level_min': 50, 'rarity': 'uncommon', 'base_hp': 800, 'base_patk': 79, 'base_matk': 139, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 33, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T6·R·MAG 定位：灼烧转爆', 'catch_rate': 60},
+    {'beast_code': 'SZW_0089', 'name': '冥炎龙裔', 'race_type': 'dragon', 'map_level_min': 50, 'rarity': 'legendary', 'base_hp': 826, 'base_patk': 139, 'base_matk': 79, 'base_pdef': 66, 'base_mdef': 66, 'base_speed': 34, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T6·L·PHY 定位：威压灼烧', 'catch_rate': 10},
+    {'beast_code': 'SZW_0090', 'name': '骸骨将', 'race_type': 'undead', 'map_level_min': 50, 'rarity': 'common', 'base_hp': 1087, 'base_patk': 96, 'base_matk': 96, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 31, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_052", "SK_007", "SK_008", "SK_050"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T6·N·TANK 定位：抗性', 'catch_rate': 80},
+    {'beast_code': 'SZW_0091', 'name': '玄冰螺皇', 'race_type': 'water', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 1325, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 100, 'base_mdef': 100, 'base_speed': 35, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T7·N·TANK 定位：护盾增强', 'catch_rate': 80},
+    {'beast_code': 'SZW_0092', 'name': '深海龙鲛', 'race_type': 'water', 'map_level_min': 60, 'rarity': 'uncommon', 'base_hp': 975, 'base_patk': 100, 'base_matk': 175, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 37, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T7·R·MAG 定位：冻结法穿', 'catch_rate': 60},
+    {'beast_code': 'SZW_0093', 'name': '潮汐霸主', 'race_type': 'water', 'map_level_min': 60, 'rarity': 'legendary', 'base_hp': 1325, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 100, 'base_mdef': 100, 'base_speed': 35, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T7·L·TANK 定位：群体护盾', 'catch_rate': 10},
+    {'beast_code': 'SZW_0094', 'name': '狂岩狮王', 'race_type': 'beast', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 1007, 'base_patk': 175, 'base_matk': 100, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 38, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T7·N·PHY 定位：暴击提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0095', 'name': '铁背蛮熊', 'race_type': 'beast', 'map_level_min': 60, 'rarity': 'uncommon', 'base_hp': 1325, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 100, 'base_mdef': 100, 'base_speed': 35, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T7·R·TANK 定位：反伤强化', 'catch_rate': 60},
+    {'beast_code': 'SZW_0096', 'name': '兽神角斗', 'race_type': 'beast', 'map_level_min': 60, 'rarity': 'rare', 'base_hp': 1007, 'base_patk': 175, 'base_matk': 100, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 38, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T7·E·PHY 定位：破甲斩杀', 'catch_rate': 30},
+    {'beast_code': 'SZW_0097', 'name': '毒巢女皇', 'race_type': 'bug', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 1113, 'base_patk': 151, 'base_matk': 151, 'base_pdef': 87, 'base_mdef': 87, 'base_speed': 35, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T7·N·CURSE 定位：毒扩散', 'catch_rate': 80},
+    {'beast_code': 'SZW_0098', 'name': '蛊翼皇蜂', 'race_type': 'bug', 'map_level_min': 60, 'rarity': 'uncommon', 'base_hp': 975, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 44, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T7·R·CTRL 定位：麻痹降命中', 'catch_rate': 60},
+    {'beast_code': 'SZW_0099', 'name': '腐渊蠹王', 'race_type': 'bug', 'map_level_min': 60, 'rarity': 'rare', 'base_hp': 1113, 'base_patk': 151, 'base_matk': 151, 'base_pdef': 87, 'base_mdef': 87, 'base_speed': 35, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T7·E·CURSE 定位：吸血放大', 'catch_rate': 30},
+    {'beast_code': 'SZW_0100', 'name': '风雷天隼', 'race_type': 'flying', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 975, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 44, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T7·N·CTRL 定位：先手压制', 'catch_rate': 80},
+    {'beast_code': 'SZW_0101', 'name': '云裂鸢', 'race_type': 'flying', 'map_level_min': 60, 'rarity': 'uncommon', 'base_hp': 1007, 'base_patk': 175, 'base_matk': 100, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 38, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T7·R·PHY 定位：追击强化', 'catch_rate': 60},
+    {'beast_code': 'SZW_0102', 'name': '雷霆鹫王', 'race_type': 'flying', 'map_level_min': 60, 'rarity': 'rare', 'base_hp': 975, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 80, 'base_mdef': 80, 'base_speed': 44, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T7·E·CTRL 定位：群麻痹', 'catch_rate': 30},
+    {'beast_code': 'SZW_0103', 'name': '苍穹龙', 'race_type': 'dragon', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 1007, 'base_patk': 175, 'base_matk': 100, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 38, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T7·N·PHY 定位：威压破防', 'catch_rate': 80},
+    {'beast_code': 'SZW_0104', 'name': '星辉龙', 'race_type': 'dragon', 'map_level_min': 60, 'rarity': 'uncommon', 'base_hp': 975, 'base_patk': 100, 'base_matk': 175, 'base_pdef': 82, 'base_mdef': 82, 'base_speed': 37, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T7·R·MAG 定位：星火灼烧', 'catch_rate': 60},
+    {'beast_code': 'SZW_0105', 'name': '冥主骸王', 'race_type': 'undead', 'map_level_min': 60, 'rarity': 'common', 'base_hp': 1325, 'base_patk': 122, 'base_matk': 122, 'base_pdef': 100, 'base_mdef': 100, 'base_speed': 35, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_052", "SK_007", "SK_008", "SK_050"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T7·N·TANK 定位：抗性高', 'catch_rate': 80},
+    {'beast_code': 'SZW_0106', 'name': '深渊鲸皇', 'race_type': 'water', 'map_level_min': 70, 'rarity': 'common', 'base_hp': 1600, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 123, 'base_mdef': 123, 'base_speed': 38, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_031", "SK_007", "SK_008", "SK_009"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T8·N·TANK 定位：高血护盾', 'catch_rate': 80},
+    {'beast_code': 'SZW_0107', 'name': '冰海圣鲛', 'race_type': 'water', 'map_level_min': 70, 'rarity': 'uncommon', 'base_hp': 1177, 'base_patk': 125, 'base_matk': 219, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 41, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_011", "SK_013", "SK_014", "SK_012"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T8·R·MAG 定位：冻结稳定', 'catch_rate': 60},
+    {'beast_code': 'SZW_0108', 'name': '潮冕龙鲛', 'race_type': 'water', 'map_level_min': 70, 'rarity': 'rare', 'base_hp': 1177, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 98, 'base_mdef': 98, 'base_speed': 49, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_032", "SK_011", "SK_013", "SK_014"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🌊', 'description': 'T8·E·CTRL 定位：冻结驱散', 'catch_rate': 30},
+    {'beast_code': 'SZW_0109', 'name': '霸爪战王', 'race_type': 'beast', 'map_level_min': 70, 'rarity': 'common', 'base_hp': 1216, 'base_patk': 219, 'base_matk': 125, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 43, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_003", "SK_001", "SK_002", "SK_034"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T8·N·PHY 定位：斩杀强化', 'catch_rate': 80},
+    {'beast_code': 'SZW_0110', 'name': '岩甲巨兽', 'race_type': 'beast', 'map_level_min': 70, 'rarity': 'uncommon', 'base_hp': 1600, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 123, 'base_mdef': 123, 'base_speed': 38, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_010", "SK_006", "SK_007", "SK_036"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐾', 'description': 'T8·R·TANK 定位：嘲讽减伤', 'catch_rate': 60},
+    {'beast_code': 'SZW_0111', 'name': '蛊渊皇', 'race_type': 'bug', 'map_level_min': 70, 'rarity': 'common', 'base_hp': 1344, 'base_patk': 189, 'base_matk': 189, 'base_pdef': 107, 'base_mdef': 107, 'base_speed': 38, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T8·N·CURSE 定位：DOT扩散', 'catch_rate': 80},
+    {'beast_code': 'SZW_0112', 'name': '腐天女皇', 'race_type': 'bug', 'map_level_min': 70, 'rarity': 'uncommon', 'base_hp': 1177, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 98, 'base_mdef': 98, 'base_speed': 49, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_039", "SK_018", "SK_019", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T8·R·CTRL 定位：降命中降速', 'catch_rate': 60},
+    {'beast_code': 'SZW_0113', 'name': '虫巢灾主', 'race_type': 'bug', 'map_level_min': 70, 'rarity': 'rare', 'base_hp': 1344, 'base_patk': 189, 'base_matk': 189, 'base_pdef': 107, 'base_mdef': 107, 'base_speed': 38, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_023", "SK_024", "SK_037", "SK_038"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐛', 'description': 'T8·E·CURSE 定位：吸血爆发', 'catch_rate': 30},
+    {'beast_code': 'SZW_0114', 'name': '天风神隼', 'race_type': 'flying', 'map_level_min': 70, 'rarity': 'common', 'base_hp': 1177, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 98, 'base_mdef': 98, 'base_speed': 49, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T8·N·CTRL 定位：先手压制', 'catch_rate': 80},
+    {'beast_code': 'SZW_0115', 'name': '雷羽王', 'race_type': 'flying', 'map_level_min': 70, 'rarity': 'uncommon', 'base_hp': 1216, 'base_patk': 219, 'base_matk': 125, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 43, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_040", "SK_041", "SK_004", "SK_027"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T8·R·PHY 定位：追击连击', 'catch_rate': 60},
+    {'beast_code': 'SZW_0116', 'name': '苍穹翼圣', 'race_type': 'flying', 'map_level_min': 70, 'rarity': 'common', 'base_hp': 1177, 'base_patk': 153, 'base_matk': 153, 'base_pdef': 98, 'base_mdef': 98, 'base_speed': 49, 'growth_min': 1, 'growth_max': 3, 'skill_pool_json': '["SK_042", "SK_017", "SK_018", "SK_016"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🪶', 'description': 'T8·N·CTRL 定位：闪避提升', 'catch_rate': 80},
+    {'beast_code': 'SZW_0117', 'name': '星烬龙王', 'race_type': 'dragon', 'map_level_min': 70, 'rarity': 'uncommon', 'base_hp': 1216, 'base_patk': 219, 'base_matk': 125, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 43, 'growth_min': 2, 'growth_max': 4, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T8·R·PHY 定位：威压破防', 'catch_rate': 60},
+    {'beast_code': 'SZW_0118', 'name': '霜烬龙皇', 'race_type': 'dragon', 'map_level_min': 70, 'rarity': 'rare', 'base_hp': 1177, 'base_patk': 125, 'base_matk': 219, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 41, 'growth_min': 3, 'growth_max': 5, 'skill_pool_json': '["SK_044", "SK_015", "SK_051", "SK_043"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T8·E·MAG 定位：冻灼双态', 'catch_rate': 30},
+    {'beast_code': 'SZW_0119', 'name': '幽冥龙祖', 'race_type': 'dragon', 'map_level_min': 70, 'rarity': 'legendary', 'base_hp': 1216, 'base_patk': 219, 'base_matk': 125, 'base_pdef': 101, 'base_mdef': 101, 'base_speed': 43, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_043", "SK_001", "SK_002", "SK_005"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '🐉', 'description': 'T8·L·PHY 定位：双威压', 'catch_rate': 10},
+    {'beast_code': 'SZW_0120', 'name': '归墟死王', 'race_type': 'undead', 'map_level_min': 70, 'rarity': 'legendary', 'base_hp': 1344, 'base_patk': 189, 'base_matk': 189, 'base_pdef': 107, 'base_mdef': 107, 'base_speed': 38, 'growth_min': 4, 'growth_max': 5, 'skill_pool_json': '["SK_048", "SK_046", "SK_047", "SK_021"]', 'personality_pool_json': '["brave", "calm", "timid", "cheerful", "proud", "cunning", "fierce", "stubborn", "cold"]', 'icon': '💀', 'description': 'T8·L·CURSE 定位：群诅咒复生', 'catch_rate': 10},
+]
+
+MIGRATED_SKILLS = [
+    {'skill_code': 'SK_001', 'name': '利爪斩', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*1.10', 'base_damage': 22, 'trigger_rate': 100, 'mp_cost': 5, 'cooldown': 1, 'description': '单体物伤', 'icon': '⚔️'},
+    {'skill_code': 'SK_002', 'name': '破甲击', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*0.95', 'base_damage': 19, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '降DEF_PHY', 'icon': '⚔️'},
+    {'skill_code': 'SK_003', 'name': '撕裂', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*0.90', 'base_damage': 18, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '流血2回合', 'icon': '⚔️'},
+    {'skill_code': 'SK_004', 'name': '连环突袭', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*0.65', 'base_damage': 13, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '随机2-3段', 'icon': '⚔️'},
+    {'skill_code': 'SK_005', 'name': '斩杀线', 'skill_type': 'passive', 'category': 'patk', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 20, 'mp_cost': 0, 'cooldown': 0, 'description': '目标低血增伤', 'icon': '⚔️'},
+    {'skill_code': 'SK_006', 'name': '反击姿态', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 18, 'mp_cost': 0, 'cooldown': 0, 'description': '受击反击概率', 'icon': '🛡️'},
+    {'skill_code': 'SK_007', 'name': '坚甲', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 12, 'mp_cost': 0, 'cooldown': 0, 'description': 'DEF_PHY%提升', 'icon': '🛡️'},
+    {'skill_code': 'SK_008', 'name': '法抗', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 12, 'mp_cost': 0, 'cooldown': 0, 'description': 'DEF_MAG%提升', 'icon': '🛡️'},
+    {'skill_code': 'SK_009', 'name': '护盾术', 'skill_type': 'active', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '按HP生成盾', 'icon': '🛡️'},
+    {'skill_code': 'SK_010', 'name': '嘲讽', 'skill_type': 'active', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '强制目标1回合', 'icon': '🛡️'},
+    {'skill_code': 'SK_011', 'name': '潮汐箭', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*1.10', 'base_damage': 22, 'trigger_rate': 100, 'mp_cost': 5, 'cooldown': 1, 'description': '单体法伤', 'icon': '🔮'},
+    {'skill_code': 'SK_012', 'name': '冰封', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '冻结1回合', 'icon': '🌀'},
+    {'skill_code': 'SK_013', 'name': '寒潮', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*0.85', 'base_damage': 17, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '群体法伤', 'icon': '🔮'},
+    {'skill_code': 'SK_014', 'name': '法穿印记', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*0.00', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '降DEF_MAG', 'icon': '🔮'},
+    {'skill_code': 'SK_015', 'name': '灼烧', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*0.70', 'base_damage': 14, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '灼烧2回合', 'icon': '🔮'},
+    {'skill_code': 'SK_016', 'name': '雷击', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '小概率麻痹', 'icon': '🌀'},
+    {'skill_code': 'SK_017', 'name': '加速', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '己方速度提升', 'icon': '🌀'},
+    {'skill_code': 'SK_018', 'name': '减速', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '敌方速度下降', 'icon': '🌀'},
+    {'skill_code': 'SK_019', 'name': '沉默咒', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '沉默1回合', 'icon': '🌀'},
+    {'skill_code': 'SK_020', 'name': '驱散', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '驱散1个减益', 'icon': '🌀'},
+    {'skill_code': 'SK_021', 'name': '吸血咒', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '造成伤害并回血', 'icon': '💀'},
+    {'skill_code': 'SK_022', 'name': '诅咒', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '受伤加深', 'icon': '💀'},
+    {'skill_code': 'SK_023', 'name': '中毒', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '毒2回合', 'icon': '💀'},
+    {'skill_code': 'SK_024', 'name': '腐蚀', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '降双防', 'icon': '💀'},
+    {'skill_code': 'SK_025', 'name': '复生印记', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 20, 'mp_cost': 0, 'cooldown': 0, 'description': '濒死免死一次', 'icon': '💀'},
+    {'skill_code': 'SK_026', 'name': '先手压制', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 10, 'mp_cost': 0, 'cooldown': 0, 'description': '首回合增伤', 'icon': '🌀'},
+    {'skill_code': 'SK_027', 'name': '暴击训练', 'skill_type': 'passive', 'category': 'patk', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 10, 'mp_cost': 0, 'cooldown': 0, 'description': '暴击%提升', 'icon': '⚔️'},
+    {'skill_code': 'SK_028', 'name': '命中校准', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 10, 'mp_cost': 0, 'cooldown': 0, 'description': '命中%提升', 'icon': '🌀'},
+    {'skill_code': 'SK_029', 'name': '闪避身法', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 10, 'mp_cost': 0, 'cooldown': 0, 'description': '闪避%提升', 'icon': '🌀'},
+    {'skill_code': 'SK_030', 'name': '抗暴甲', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 10, 'mp_cost': 0, 'cooldown': 0, 'description': '抗暴%提升', 'icon': '🛡️'},
+    {'skill_code': 'SK_031', 'name': '水盾', 'skill_type': 'active', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '水族专属护盾', 'icon': '🛡️'},
+    {'skill_code': 'SK_032', 'name': '冻结潮', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 25, 'cooldown': 5, 'description': '群体小概率冻结', 'icon': '🌀'},
+    {'skill_code': 'SK_033', 'name': '深海回响', 'skill_type': 'passive', 'category': 'matk', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 12, 'mp_cost': 0, 'cooldown': 0, 'description': '法伤增幅', 'icon': '🔮'},
+    {'skill_code': 'SK_034', 'name': '兽怒', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*0.00', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '自增伤+自减防', 'icon': '⚔️'},
+    {'skill_code': 'SK_035', 'name': '冲撞', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*1.05', 'base_damage': 21, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '附带眩晕概率', 'icon': '⚔️'},
+    {'skill_code': 'SK_036', 'name': '野性再生', 'skill_type': 'active', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '按HP回血', 'icon': '🛡️'},
+    {'skill_code': 'SK_037', 'name': '虫群', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '多段DOT', 'icon': '💀'},
+    {'skill_code': 'SK_038', 'name': '毒扩散', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 25, 'mp_cost': 0, 'cooldown': 0, 'description': '毒可扩散', 'icon': '💀'},
+    {'skill_code': 'SK_039', 'name': '网缚', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '定身1回合', 'icon': '🌀'},
+    {'skill_code': 'SK_040', 'name': '风刃', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*1.00', 'base_damage': 20, 'trigger_rate': 100, 'mp_cost': 5, 'cooldown': 1, 'description': '羽族物伤', 'icon': '⚔️'},
+    {'skill_code': 'SK_041', 'name': '追击', 'skill_type': 'passive', 'category': 'patk', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 18, 'mp_cost': 0, 'cooldown': 0, 'description': '击杀后追击', 'icon': '⚔️'},
+    {'skill_code': 'SK_042', 'name': '雷翼麻痹', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '麻痹1回合', 'icon': '🌀'},
+    {'skill_code': 'SK_043', 'name': '龙威', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '群体降攻', 'icon': '🌀'},
+    {'skill_code': 'SK_044', 'name': '龙炎吐息', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*0.90', 'base_damage': 18, 'trigger_rate': 100, 'mp_cost': 15, 'cooldown': 3, 'description': '群体灼烧', 'icon': '🔮'},
+    {'skill_code': 'SK_045', 'name': '霜息', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '单体冻结', 'icon': '🌀'},
+    {'skill_code': 'SK_046', 'name': '亡灵虹吸', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '吸血+降速', 'icon': '💀'},
+    {'skill_code': 'SK_047', 'name': '冥火', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*1.05', 'base_damage': 21, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '法伤附灼烧', 'icon': '🔮'},
+    {'skill_code': 'SK_048', 'name': '群体诅咒', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 25, 'cooldown': 5, 'description': '群体受伤加深', 'icon': '💀'},
+    {'skill_code': 'SK_049', 'name': '净化之风', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '驱散1个增益', 'icon': '🌀'},
+    {'skill_code': 'SK_050', 'name': '护主', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 15, 'mp_cost': 0, 'cooldown': 0, 'description': '为队友分摊伤害', 'icon': '🛡️'},
+    {'skill_code': 'SK_051', 'name': '破魔', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*1.00', 'base_damage': 20, 'trigger_rate': 100, 'mp_cost': 10, 'cooldown': 2, 'description': '对护盾增伤', 'icon': '🔮'},
+    {'skill_code': 'SK_052', 'name': '反伤结界', 'skill_type': 'active', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 25, 'cooldown': 5, 'description': '反伤2回合', 'icon': '🛡️'},
+    {'skill_code': 'SK_053', 'name': '血祭', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 25, 'cooldown': 5, 'description': '自损换高伤', 'icon': '💀'},
+    {'skill_code': 'SK_054', 'name': '怒火连击', 'skill_type': 'active', 'category': 'patk', 'damage_formula': 'PHY*0.60', 'base_damage': 12, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '三段随机', 'icon': '⚔️'},
+    {'skill_code': 'SK_055', 'name': '风暴降临', 'skill_type': 'active', 'category': 'matk', 'damage_formula': 'MAG*0.80', 'base_damage': 16, 'trigger_rate': 100, 'mp_cost': 20, 'cooldown': 4, 'description': '群体+降速', 'icon': '🔮'},
+    {'skill_code': 'SK_056', 'name': '绝对零度', 'skill_type': 'active', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 30, 'cooldown': 6, 'description': '冻结+降防', 'icon': '🌀'},
+    {'skill_code': 'SK_057', 'name': '天魔降伏', 'skill_type': 'passive', 'category': 'patk', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 0, 'cooldown': 0, 'description': '对应天魂模板', 'icon': '⚔️'},
+    {'skill_code': 'SK_058', 'name': '守护之魂', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 0, 'cooldown': 0, 'description': '对应天魂模板', 'icon': '🛡️'},
+    {'skill_code': 'SK_059', 'name': '蹑影逐日', 'skill_type': 'passive', 'category': 'debuff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 100, 'mp_cost': 0, 'cooldown': 0, 'description': '对应天魂模板', 'icon': '🌀'},
+    {'skill_code': 'SK_060', 'name': '极寿无疆', 'skill_type': 'passive', 'category': 'buff', 'damage_formula': '', 'base_damage': 0, 'trigger_rate': 6, 'mp_cost': 0, 'cooldown': 0, 'description': 'HP%提升', 'icon': '🛡️'},
+]
+
+MIGRATED_BONES = [
+    {'bone_code': 'skull_rare', 'name': '精钢头骨', 'slot_type': 'skull', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 60, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 0, 'mdef_bonus': 20, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'skull_epic', 'name': '龙魂头骨', 'slot_type': 'skull', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 90, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 0, 'mdef_bonus': 30, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'sternum_rare', 'name': '精钢胸骨', 'slot_type': 'sternum', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 80, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 20, 'mdef_bonus': 20, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'sternum_epic', 'name': '龙魂胸骨', 'slot_type': 'sternum', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 120, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 30, 'mdef_bonus': 30, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'arm_rare', 'name': '精钢臂骨', 'slot_type': 'arm', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 0, 'patk_bonus': 16, 'matk_bonus': 16, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'arm_epic', 'name': '龙魂臂骨', 'slot_type': 'arm', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 0, 'patk_bonus': 24, 'matk_bonus': 24, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'leg_rare', 'name': '精钢腿骨', 'slot_type': 'leg', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 0, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 16, 'mdef_bonus': 0, 'speed_bonus': 10, 'icon': '🦴'},
+    {'bone_code': 'leg_epic', 'name': '龙魂腿骨', 'slot_type': 'leg', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 0, 'patk_bonus': 0, 'matk_bonus': 0, 'pdef_bonus': 24, 'mdef_bonus': 0, 'speed_bonus': 15, 'icon': '🦴'},
+    {'bone_code': 'hand_rare', 'name': '精钢手骨', 'slot_type': 'hand', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 0, 'patk_bonus': 10, 'matk_bonus': 10, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 6, 'icon': '🦴'},
+    {'bone_code': 'hand_epic', 'name': '龙魂手骨', 'slot_type': 'hand', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 0, 'patk_bonus': 15, 'matk_bonus': 15, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 9, 'icon': '🦴'},
+    {'bone_code': 'tail_rare', 'name': '精钢尾骨', 'slot_type': 'tail', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 0, 'patk_bonus': 6, 'matk_bonus': 6, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 6, 'icon': '🦴'},
+    {'bone_code': 'tail_epic', 'name': '龙魂尾骨', 'slot_type': 'tail', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 0, 'patk_bonus': 9, 'matk_bonus': 9, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 9, 'icon': '🦴'},
+    {'bone_code': 'soul_core_rare', 'name': '精钢元魂', 'slot_type': 'soul_core', 'quality': 'rare', 'level_required': 20, 'hp_bonus': 60, 'patk_bonus': 10, 'matk_bonus': 10, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 0, 'icon': '🦴'},
+    {'bone_code': 'soul_core_epic', 'name': '龙魂元魂', 'slot_type': 'soul_core', 'quality': 'epic', 'level_required': 40, 'hp_bonus': 90, 'patk_bonus': 15, 'matk_bonus': 15, 'pdef_bonus': 0, 'mdef_bonus': 0, 'speed_bonus': 0, 'icon': '🦴'},
+]
+
+MIGRATED_SOULS = [
+    {'soul_code': 'tian_天魔降伏', 'name': '天魂·天魔降伏', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 120, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_日月乾坤', 'name': '天魂·日月乾坤', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 60, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_万龙朝圣', 'name': '天魂·万龙朝圣', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 120, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_绝对零度', 'name': '天魂·绝对零度', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 60, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_守护之魂', 'name': '天魂·守护之魂', 'quality': 'tian', 'category': 'special', 'fixed_hp': 150, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_蹑影逐日', 'name': '天魂·蹑影逐日', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 8, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_无人能挡', 'name': '天魂·无人能挡', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 8, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_逢凶化吉', 'name': '天魂·逢凶化吉', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 6, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_天绝地灭', 'name': '天魂·天绝地灭', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 8, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_冰霜之心', 'name': '天魂·冰霜之心', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 6, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_极寿无疆', 'name': '天魂·极寿无疆', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 6, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 0, 'icon': '🔵'},
+    {'soul_code': 'tian_流星赶月', 'name': '天魂·流星赶月', 'quality': 'tian', 'category': 'special', 'fixed_hp': 0, 'fixed_patk': 0, 'fixed_matk': 0, 'fixed_pdef': 0, 'fixed_mdef': 0, 'fixed_speed': 0, 'percent_hp': 0, 'percent_patk': 0, 'percent_matk': 0, 'percent_pdef': 0, 'percent_mdef': 0, 'percent_speed': 6, 'icon': '🔵'},
+]
+
+MIGRATED_SPIRITS = [
+    {'spirit_code': 'water_spirit', 'name': '水之战灵', 'element_type': 'water', 'quality': 'rare', 'attr_pool_json': '{"hp": [30, 80], "mdef": [5, 15]}', 'icon': '💧'},
+    {'spirit_code': 'earth_spirit', 'name': '土之战灵', 'element_type': 'earth', 'quality': 'rare', 'attr_pool_json': '{"pdef": [10, 25], "hp": [30, 80]}', 'icon': '🪨'},
+    {'spirit_code': 'fire_spirit', 'name': '火之战灵', 'element_type': 'fire', 'quality': 'rare', 'attr_pool_json': '{"matk": [5, 15], "patk": [3, 10]}', 'icon': '🔥'},
+    {'spirit_code': 'wood_spirit', 'name': '木之战灵', 'element_type': 'wood', 'quality': 'rare', 'attr_pool_json': '{"hp": [40, 100], "speed": [3, 8]}', 'icon': '🌿'},
+    {'spirit_code': 'metal_spirit', 'name': '金之战灵', 'element_type': 'metal', 'quality': 'rare', 'attr_pool_json': '{"patk": [8, 20], "matk": [8, 20]}', 'icon': '⚜️'},
+    {'spirit_code': 'god_spirit', 'name': '神之战灵', 'element_type': 'god', 'quality': 'legendary', 'attr_pool_json': '{"hp": [60, 150], "patk": [10, 25], "matk": [10, 25], "speed": [5, 12]}', 'icon': '✨'},
+]
 
 
 # ============================================================

@@ -47,6 +47,7 @@ def get_common_context(request: Request, db: Session):
         "lang": lang,
         "theme": theme,
         "_": lambda key: t(key, lang),
+        "t": lambda key: t(key, lang),
         "unread_count": unread_count,
         "now": datetime.utcnow(),
     }

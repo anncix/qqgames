@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 from models.database import get_db
 from models.models import (
     User, TownProfile, TownTable, TownRecipe, TownUserRecipe, TownIngredient,
-    TownFriendAction, Notification, Wallet
+    TownOrder, TownFriendAction, Notification, Wallet
 )
 from utils.auth import get_current_user
 from utils.i18n import t

@@ -52,19 +52,19 @@
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
         <div style="font-weight:bold; font-size:16px;">🍳 {{ town.restaurant_name if town else '我的餐厅' }}</div>
         <div style="background:#d06020; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">
-            Lv.{{ town.level if town else 1 }}
+            Lv.{{ town.restaurant_level if town else 1 }}
         </div>
     </div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; font-size:13px;">
-        <div>🪙 金币: <b class="text-blue">{{ town.coins if town else 1000 }}</b></div>
-        <div>⭐ 口碑: <b class="text-red">{{ town.reputation if town else 0 }}</b></div>
+        <div>🪙 金币: <b class="text-blue">{{ town.gold if town else 1000 }}</b></div>
+        <div>⭐ 口碑: <b class="text-red">{{ town.star_level if town else 0 }}</b></div>
         <div>🪑 座位: <b>{{ town.seats if town else 4 }}</b></div>
-        <div>🍽️ 菜谱: <b>{{ town.recipe_count if town else 3 }}道</b></div>
+        <div>🍽️ 菜谱: <b>{{ (recipes | length) if town else 3 }}道</b></div>
     </div>
     <div style="margin-top:8px; font-size:12px;">
-        经验: {{ town.exp if town else 0 }}/{{ (town.level if town else 1) * 100 }}
+        经验: {{ town.restaurant_exp if town else 0 }}/{{ (town.restaurant_level if town else 1) * 100 }}
         <div class="progress-bar mt-5">
-            <div class="progress-fill" style="width: {{ ((town.exp if town else 0) / ((town.level if town else 1) * 100)) * 100 if (town.level if town else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #d06020 0%, #f08040 100%);"></div>
+            <div class="progress-fill" style="width: {{ ((town.restaurant_exp if town else 0) / ((town.restaurant_level if town else 1) * 100)) * 100 if (town.restaurant_level if town else 1) > 0 else 0 }}%; background:linear-gradient(90deg, #d06020 0%, #f08040 100%);"></div>
         </div>
     </div>
 </div>
@@ -73,11 +73,11 @@
 <div class="section">
     <div class="section-title">🏪 餐厅营业</div>
     <div class="section-body text-center">
-        {% if town and town.is_open %}
+        {% if False %}
         <div style="font-size:48px; margin-bottom:8px;">🍽️</div>
         <div style="font-size:15px; font-weight:bold; color:#2a8a2a;">营业中</div>
         <div style="margin-top:8px;">
-            {% for i in range(town.customers if town else 2) %}
+            {% for i in range(2) %}
             <span class="customer">
                 {% if i % 3 == 0 %}👨{% elif i % 3 == 1 %}👩{% else %}🧑{% endif %}
             </span>
